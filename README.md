@@ -19,3 +19,18 @@ rm h36m.zip
 
 ### Test
 `python 3d_pose_detection.py --test --load ./checkpoint/ckpt_60.pth.tar`
+
+
+
+# 2D joints estimation using posenet
+
+```
+brew install yarn
+cd app/posenet
+yarn
+cd demos
+yarn && yarn watch
+```
+
+
+
