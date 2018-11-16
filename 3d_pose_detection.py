@@ -127,7 +127,7 @@ def main():
 			sys.exit()
 
 		cktp_file = args.load
-		ckpt = torch.load(cktp_file)
+		ckpt = torch.load(cktp_file, map_location=lambda storage, loc: storage)
 		model.load_state_dict(ckpt['model'])
 		optimizer.load_state_dict(ckpt['optim'])
 		print('Loaded checkpoint from {}'.format(args.load))
