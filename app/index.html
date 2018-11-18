@@ -44,9 +44,19 @@
                                 height="300px"></canvas>
                     </div>
                 </div>
+
+                <div class="col-6">
+
+                </div>
+
             </div>
+
+
         </div>
+        <div class="col-1 col"></div>
+
     </div>
+
 </div>
 
 <script>
@@ -61,6 +71,8 @@
     const outputStride = 16;
     const imageElement = document.getElementById('video');
     const canvasElement = document.getElementById("myCanvas");
+
+    const socket = new WebSocket('ws://localhost:8001');
 
     const index_map = {
         'hip': 0,
@@ -239,6 +251,8 @@
                     [joints['rightWrist']['position'].x, joints['rightWrist']['position'].y],
                 ];
 
+                socket.send(joints_sample);
+
                 console.log(JSON.stringify([
                     joints['centerHip']['position'].x, joints['centerHip']['position'].y,
                     joints['leftHip']['position'].x, joints['leftHip']['position'].y,
@@ -261,7 +275,6 @@
         });
         currentAnimationId = requestAnimationFrame(drawToCanvas);
     }
-
 
     function normalize2d(array_2d, scale = 1.0) {
         let _min = Infinity;
@@ -444,12 +457,8 @@
     }
 
     function render() {
-
         renderer.render(scene, camera);
-
     }
-
-    const socket = new WebSocket('ws://localhost:8001');
 
     // Connection opened
     socket.addEventListener('open', function (event) {
