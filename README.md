@@ -22,15 +22,5 @@ rm h36m.zip
 
 
 
-# 2D joints estimation using posenet
-
-```
-brew install yarn
-cd app/posenet
-yarn
-cd demos
-yarn && yarn watch
-```
-
 
 
