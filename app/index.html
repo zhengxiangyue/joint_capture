@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1">
+    <meta name="mobile-web-app-capable" content="yes">
+    <base target="_blank">
+
+    <title>Skeleton 3d reconstruction</title>
+    <script src="js/jquery-3.1.1.min.js"></script>
+    <script src="js/tfjs.js"></script>
+    <script src="js/posenet.js"></script>
+    <script src="js/three.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/WebGL.js"></script>
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div id="wrapper" class="centered">
+    <div style="position: absolute" id="info"></div>
+
+    <div>
+        <div class="col-1 col"></div>
+        <div class="col-10 col">
+            <div class="row" style="margin: 10px">
+                <button class="btn" onclick="startWebcam();">Start WebCam</button>
+                <button style="margin-left: 20px" class="btn" onclick="stopWebcam();">Stop WebCam</button>
+            </div>
+            <div class="row">
+
+                <div class="col-6">
+
+                    <div class="video-wrapper local">
+                        <video style="position: absolute;"
+                               id="video"
+                               width="400px"
+                               height="300px"
+                               autoplay=""
+                               playsinline=""></video>
+                        <canvas style="position: absolute;border: #1c7430 solid 2px;display: inline-block"
+                                id="myCanvas"
+                                width="400px"
+                                height="300px"></canvas>
+                    </div>
+                </div>
+
+                <div class="col-6">
+
+                </div>
+
+            </div>
+
+
+        </div>
+        <div class="col-1 col"></div>
+
+    </div>
+
+</div>
+
+<script>
+    let localStream;
+    let networks;
+    let currentAnimationId;
+    let joints_sample = [];
+    let lines_3d = [];
+
+    const scaleFactor = 0.50;
+    const flipHorizontal = false;
+    const outputStride = 16;
+    const imageElement = document.getElementById('video');
+    const canvasElement = document.getElementById("myCanvas");
+
+    const index_map = {
+        'hip': 0,
+        'lhip': 1,
+        'lknee': 2,
+        'lfoot': 3,
+        'rhip': 4,
+        'rknee': 5,
+        'rfoot': 6,
+        'spine': 7,
+        'neck': 8,
+        'head': 9,
+        'lshoulder': 10,
+        'lelbow': 11,
+        'lwrist': 12,
+        'rshoulder': 13,
+        'relbow': 14,
+        'rwrist': 15
+    };
+
+    function startWebcam() {
+        if (navigator.getUserMedia) {
+            navigator.getUserMedia(
+                {video: true, audio: true},
+                stream => {
+                    localStream = stream;
+                    $('.local video').attr('src', URL.createObjectURL(stream));
+
+                    // load the posenet model
+                    posenet.load().then(function (net) {
+                        // posenet model loaded
+                        networks = net;
+                        drawToCanvas();
+                    });
+
+                },
+                error => {
+                    alert('error while accessing usermedia ' + error.toString());
+                }
+            );
+        } else {
+            console.log("getUserMedia not supported");
+        }
+    }
+
+    function stopWebcam() {
+        try {
+            localStream.stop();
+        } catch (e) {
+            console.log(e);
+            if (localStream) {
+                localStream.getTracks().forEach(function (track) {
+                    track.stop();
+                });
+            }
+        }
+        localStream = undefined;
+    }
+
+    /**
+     * _from
+     * @param _from
+     * @param _to
+     */
+    function drawLine(_from, _to) {
+        let ctx = canvasElement.getContext("2d");
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#00ff00';
+        ctx.moveTo(_from['position'].x, _from['position'].y);
+        ctx.lineTo(_to['position'].x, _to['position'].y);
+        ctx.stroke();
+    }
+
+    function drawToCanvas() {
+
+        if (!localStream) {
+            window.cancelAnimationFrame(currentAnimationId);
+            return;
+        }
+
+        networks.estimateSinglePose(imageElement, scaleFactor, flipHorizontal, outputStride).then(function (result) {
+
+            let joints = {};
+            for (let i = 0; i < result['keypoints'].length; ++i) {
+                joints[result['keypoints'][i]['part']] = result['keypoints'][i];
+            }
+
+            // calculate center shoulder
+            joints['centerShoulder'] = {
+                score: (joints['leftShoulder']['score'] + joints['rightShoulder']['score']) * 0.5,
+                part: 'centerShoulder',
+                position: {
+                    x: (joints['leftShoulder']['position'].x + joints['rightShoulder']['position'].x) * 0.5,
+                    y: (joints['leftShoulder']['position'].y + joints['rightShoulder']['position'].y) * 0.5
+                },
+            };
+            joints['centerHip'] = {
+                score: (joints['leftHip']['score'] + joints['rightHip']['score']) * 0.5,
+                part: 'centerHip',
+                position: {
+                    x: (joints['leftHip']['position'].x + joints['rightHip']['position'].x) * 0.5,
+                    y: (joints['leftHip']['position'].y + joints['rightHip']['position'].y) * 0.5,
+                },
+            };
+            joints['spine'] = {
+                score: (joints['centerHip']['score'] + joints['centerShoulder']['score']) * 0.5,
+                part: 'spine',
+                position: {
+                    x: (joints['centerHip']['position'].x + joints['centerShoulder']['position'].x) * 0.5,
+                    y: (joints['centerHip']['position'].y + joints['centerShoulder']['position'].y) * 0.5,
+                },
+            };
+
+            let ctx = canvasElement.getContext("2d");
+            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            if (joints['nose']['score'] > 0.8 && joints['centerShoulder']['score'] > 0.8) {
+                drawLine(joints['nose'], joints['centerShoulder']);
+            }
+            if (joints['centerShoulder']['score'] > 0.8 && joints['centerHip']['score'] > 0.8) {
+                drawLine(joints['centerShoulder'], joints['centerHip']);
+            }
+            if (joints['leftShoulder']['score'] > 0.8 && joints['rightShoulder']['score'] > 0.8) {
+                drawLine(joints['leftShoulder'], joints['rightShoulder']);
+            }
+            if (joints['leftShoulder']['score'] > 0.8 && joints['leftElbow']['score'] > 0.8) {
+                drawLine(joints['leftShoulder'], joints['leftElbow']);
+            }
+            if (joints['leftElbow']['score'] > 0.8 && joints['leftWrist']['score'] > 0.8) {
+                drawLine(joints['leftElbow'], joints['leftWrist']);
+            }
+            if (joints['rightShoulder']['score'] > 0.8 && joints['rightElbow']['score'] > 0.8) {
+                drawLine(joints['rightShoulder'], joints['rightElbow']);
+            }
+            if (joints['rightElbow']['score'] > 0.8 && joints['rightWrist']['score'] > 0.8) {
+                drawLine(joints['rightElbow'], joints['rightWrist']);
+            }
+            if (joints['centerHip']['score'] > 0.8 && joints['leftHip']['score'] > 0.8) {
+                drawLine(joints['centerHip'], joints['leftHip']);
+            }
+            if (joints['leftHip']['score'] > 0.8 && joints['leftKnee']['score'] > 0.8) {
+                drawLine(joints['leftHip'], joints['leftKnee']);
+            }
+            if (joints['leftKnee']['score'] > 0.8 && joints['leftAnkle']['score'] > 0.8) {
+                drawLine(joints['leftKnee'], joints['leftAnkle']);
+            }
+            if (joints['centerHip']['score'] > 0.8 && joints['rightHip']['score'] > 0.8) {
+                drawLine(joints['centerHip'], joints['rightHip']);
+            }
+            if (joints['rightHip']['score'] > 0.8 && joints['rightKnee']['score'] > 0.8) {
+                drawLine(joints['rightHip'], joints['rightKnee']);
+            }
+            if (joints['rightKnee']['score'] > 0.8 && joints['rightAnkle']['score'] > 0.8) {
+                drawLine(joints['rightKnee'], joints['rightAnkle']);
+            }
+
+            if (result['score'] > 0.8) {
+
+                joints_sample = [
+                    [joints['centerHip']['position'].x, joints['centerHip']['position'].y],
+                    [joints['leftHip']['position'].x, joints['leftHip']['position'].y],
+                    [joints['leftKnee']['position'].x, joints['leftKnee']['position'].y],
+                    [joints['leftAnkle']['position'].x, joints['leftAnkle']['position'].y],
+                    [joints['rightHip']['position'].x, joints['rightHip']['position'].y],
+                    [joints['rightKnee']['position'].x, joints['rightKnee']['position'].y],
+                    [joints['rightAnkle']['position'].x, joints['rightAnkle']['position'].y],
+                    [joints['spine']['position'].x, joints['spine']['position'].y],
+                    [joints['centerShoulder']['position'].x, joints['centerShoulder']['position'].y],
+                    [joints['nose']['position'].x, joints['nose']['position'].y],
+                    [joints['leftShoulder']['position'].x, joints['leftShoulder']['position'].y],
+                    [joints['leftElbow']['position'].x, joints['leftElbow']['position'].y],
+                    [joints['leftWrist']['position'].x, joints['leftWrist']['position'].y],
+                    [joints['rightShoulder']['position'].x, joints['rightShoulder']['position'].y],
+                    [joints['rightElbow']['position'].x, joints['rightElbow']['position'].y],
+                    [joints['rightWrist']['position'].x, joints['rightWrist']['position'].y],
+                ];
+
+                console.log(JSON.stringify([
+                    joints['centerHip']['position'].x, joints['centerHip']['position'].y,
+                    joints['leftHip']['position'].x, joints['leftHip']['position'].y,
+                    joints['leftKnee']['position'].x, joints['leftKnee']['position'].y,
+                    joints['leftAnkle']['position'].x, joints['leftAnkle']['position'].y,
+                    joints['rightHip']['position'].x, joints['rightHip']['position'].y,
+                    joints['rightKnee']['position'].x, joints['rightKnee']['position'].y,
+                    joints['rightAnkle']['position'].x, joints['rightAnkle']['position'].y,
+                    joints['spine']['position'].x, joints['spine']['position'].y,
+                    joints['centerShoulder']['position'].x, joints['centerShoulder']['position'].y,
+                    joints['nose']['position'].x, joints['nose']['position'].y,
+                    joints['leftShoulder']['position'].x, joints['leftShoulder']['position'].y,
+                    joints['leftElbow']['position'].x, joints['leftElbow']['position'].y,
+                    joints['leftWrist']['position'].x, joints['leftWrist']['position'].y,
+                    joints['rightShoulder']['position'].x, joints['rightShoulder']['position'].y,
+                    joints['rightElbow']['position'].x, joints['rightElbow']['position'].y,
+                    joints['rightWrist']['position'].x, joints['rightWrist']['position'].y,
+                ]))
+            }
+        });
+        currentAnimationId = requestAnimationFrame(drawToCanvas);
+    }
+
+
+    function normalize2d(array_2d, scale = 1.0) {
+        let _min = Infinity;
+        let _max = -Infinity;
+
+        for (let i = 0; i < array_2d.length; ++i) {
+            for (let j = 0; j < array_2d[i].length; ++j) {
+                _min = Math.min(_min, array_2d[i][j]);
+                _max = Math.max(_max, array_2d[i][j]);
+            }
+        }
+
+        for (let i = 0; i < array_2d.length; ++i) {
+            for (let j = 0; j < array_2d[i].length; ++j) {
+                array_2d[i][j] = scale * (array_2d[i][j] - _min) / (_max - _min);
+            }
+        }
+
+        return array_2d
+    }
+
+    joints_sample = normalize2d(joints_sample, 50.0);
+
+    function generateVec3(joint_index, x_offset = 100, y_offset = 300, z_offset = 0) {
+        return new THREE.Vector3(0 + x_offset, -joints_sample[joint_index][1] + y_offset, joints_sample[joint_index][0] + z_offset);
+    }
+
+    if (WEBGL.isWebGLAvailable() === false) {
+        document.getElementById("info").appendChild(WEBGL.getWebGLErrorMessage());
+    }
+
+    let camera, controls, scene, renderer;
+
+    init();
+    animate();
+
+    function init() {
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x00ccff);
+        scene.fog = new THREE.FogExp2(0xcccccc, 0.002);
+
+        renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById("info").appendChild(renderer.domElement);
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.set(400, 200, 0);
+
+        // controls
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        // controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+        // controls.dampingFactor = 0.25;
+
+        controls.screenSpacePanning = false;
+
+        controls.minDistance = 100;
+        controls.maxDistance = 500;
+
+        controls.maxPolarAngle = Math.PI / 2;
+
+        // world
+
+        var axesHelper = new THREE.AxesHelper(1000);
+        scene.add(axesHelper);
+
+        // ground
+        var mesh = new THREE.Mesh(new THREE.PlaneBufferGeometry(2000, 2000), new THREE.MeshPhongMaterial({
+            color: 0x999999,
+            depthWrite: false
+        }));
+        mesh.rotation.x = -Math.PI / 2;
+        scene.add(mesh);
+        var grid = new THREE.GridHelper(200, 40, 0x000000, 0x000000);
+        grid.material.opacity = 0.2;
+        grid.material.transparent = true;
+        scene.add(grid);
+
+        // lights
+
+        var light = new THREE.HemisphereLight(0xffffff, 0x444444);
+        light.position.set(0, 20, 0);
+        scene.add(light);
+        light = new THREE.DirectionalLight(0xffffff);
+        light.position.set(0, 20, 10);
+        scene.add(light);
+
+        window.addEventListener('resize', onWindowResize, false);
+
+    }
+
+    function setLine(start, end) {
+        //create a blue LineBasicMaterial
+        let material = new THREE.LineBasicMaterial({
+            color: 0x000000,
+            linewidth: 10,
+            linecap: 'round', //ignored by WebGLRenderer
+            linejoin: 'round' //ignored by WebGLRenderer
+        });
+        // material.linewidth = 100.0;
+        // material.lights = true;
+        let geometry = new THREE.Geometry();
+        geometry.vertices.push(start);
+        geometry.vertices.push(end);
+        // geometry.vertices.push(new THREE.Vector3(10, 0, 0));
+        let line = new THREE.LineSegments(geometry, material);
+        lines_3d.push(line);
+        scene.add(line);
+    }
+
+    function addPlaneMesh() {
+        var geometry = new THREE.CylinderBufferGeometry(0, 10, 30, 4, 1);
+        var material = new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true});
+
+        for (var i = 0; i < 500; i++) {
+
+            var mesh = new THREE.Mesh(geometry, material);
+            mesh.position.x = Math.random() * 1600 - 800;
+            mesh.position.y = 0;
+            mesh.position.z = Math.random() * 1600 - 800;
+            mesh.updateMatrix();
+            mesh.matrixAutoUpdate = false;
+            scene.add(mesh);
+
+        }
+    }
+
+    function onWindowResize() {
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+    }
+
+    function animate() {
+
+        if (joints_sample.length > 0) {
+
+            for (let i = 0; i < lines_3d.length; ++i) {
+                scene.remove(lines_3d[i]);
+                lines_3d[i].geometry.dispose();
+                lines_3d[i].material.dispose();
+            }
+
+            lines_3d = [];
+
+            // head, neck, Spine, hip
+            setLine(generateVec3(index_map['head']), generateVec3(index_map['neck']));
+            setLine(generateVec3(index_map['neck']), generateVec3(index_map['spine']));
+            setLine(generateVec3(index_map['spine']), generateVec3(index_map['hip']));
+            // l shoulder, neck, r shoulder
+            setLine(generateVec3(index_map['lshoulder']), generateVec3(index_map['neck']));
+            setLine(generateVec3(index_map['neck']), generateVec3(index_map['rshoulder']));
+            // l shoulder, l arm, l hand
+            setLine(generateVec3(index_map['lshoulder']), generateVec3(index_map['lelbow']));
+            setLine(generateVec3(index_map['lelbow']), generateVec3(index_map['lwrist']));
+            // r shoulder, r arm, r hand
+            setLine(generateVec3(index_map['rshoulder']), generateVec3(index_map['relbow']));
+            setLine(generateVec3(index_map['relbow']), generateVec3(index_map['rwrist']));
+            // l hip, hip, r hip
+            setLine(generateVec3(index_map['lhip']), generateVec3(index_map['hip']));
+            setLine(generateVec3(index_map['hip']), generateVec3(index_map['rhip']));
+            // l hip, l knee, l foot
+            setLine(generateVec3(index_map['lhip']), generateVec3(index_map['lknee']));
+            setLine(generateVec3(index_map['lknee']), generateVec3(index_map['lfoot']));
+            // r hip, r knee, r foot
+            setLine(generateVec3(index_map['rhip']), generateVec3(index_map['rknee']));
+            setLine(generateVec3(index_map['rknee']), generateVec3(index_map['rfoot']));
+        }
+
+        requestAnimationFrame(animate);
+
+        render();
+
+    }
+
+    function render() {
+
+        renderer.render(scene, camera);
+
+    }
+
+</script>
+</body>
+</html>
