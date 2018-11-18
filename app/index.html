@@ -93,6 +93,25 @@
         'rwrist': 15
     };
 
+    if (WEBGL.isWebGLAvailable() === false) {
+        document.getElementById("info").appendChild(WEBGL.getWebGLErrorMessage());
+    }
+
+    // Connection opened
+    socket.addEventListener('open', function (event) {
+        socket.send('Hello Server!');
+    });
+
+    // Listen for messages
+    socket.addEventListener('message', function (event) {
+        console.log('Message from server ', event.data);
+    });
+
+    let camera, controls, scene, renderer;
+
+    init();
+    animate();
+
     function startWebcam() {
         if (navigator.getUserMedia) {
             navigator.getUserMedia(
@@ -296,20 +315,10 @@
         return array_2d
     }
 
-    joints_sample = normalize2d(joints_sample, 50.0);
-
     function generateVec3(joint_index, x_offset = 100, y_offset = 300, z_offset = 0) {
         return new THREE.Vector3(0 + x_offset, -joints_sample[joint_index][1] + y_offset, joints_sample[joint_index][0] + z_offset);
     }
 
-    if (WEBGL.isWebGLAvailable() === false) {
-        document.getElementById("info").appendChild(WEBGL.getWebGLErrorMessage());
-    }
-
-    let camera, controls, scene, renderer;
-
-    init();
-    animate();
 
     function init() {
 
@@ -459,16 +468,6 @@
     function render() {
         renderer.render(scene, camera);
     }
-
-    // Connection opened
-    socket.addEventListener('open', function (event) {
-        socket.send('Hello Server!');
-    });
-
-    // Listen for messages
-    socket.addEventListener('message', function (event) {
-        console.log('Message from server ', event.data);
-    });
 
 </script>
 </body>
