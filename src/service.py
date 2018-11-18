@@ -7,6 +7,7 @@ def new_client(client, server):
 
 def message_received(client, server, message):
     print(message)
+    server.send_message(client, "haha")
 
 # Called for every client disconnecting
 def client_left(client, server):
