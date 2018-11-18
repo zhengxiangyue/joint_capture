@@ -44,19 +44,9 @@
                                 height="300px"></canvas>
                     </div>
                 </div>
-
-                <div class="col-6">
-
-                </div>
-
             </div>
-
-
         </div>
-        <div class="col-1 col"></div>
-
     </div>
-
 </div>
 
 <script>
@@ -458,6 +448,18 @@
         renderer.render(scene, camera);
 
     }
+
+    const socket = new WebSocket('ws://localhost:8001');
+
+    // Connection opened
+    socket.addEventListener('open', function (event) {
+        socket.send('Hello Server!');
+    });
+
+    // Listen for messages
+    socket.addEventListener('message', function (event) {
+        console.log('Message from server ', event.data);
+    });
 
 </script>
 </body>
