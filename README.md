@@ -1,6 +1,6 @@
 # 3D Human Pose Estimation
 
-![Screen Shot 2018-11-19 at 12.32.37 AM](./static/Screen Shot 2018-11-19 at 12.32.37 AM.png)
+![Screen Shot 2018-11-19 at 12.32.37 AM](./static/1.png)
 
 ## Demo usage
 
