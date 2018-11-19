@@ -4,19 +4,20 @@
 import torch
 import numpy as np
 from src.opt import *
-from src.model import Model, weight_init
+from src.model import LinearModel, weight_init
 from src.utils import update_lr, unnormalize, sort_ckpt, normalize
 from torch.autograd import Variable
 
 def pose_detection(input):
-	model = Model()
+	model = LinearModel()
 	CUDA = torch.cuda.is_available()
 	if CUDA:
 		model = model.cuda()
 
-	cktp_file = './checkpoint/ckpt_60.pth.tar'
+	cktp_file = './checkpoint/gt_ckpt_best.pth.tar'
 	ckpt = torch.load(cktp_file, map_location=lambda storage, loc: storage)
-	model.load_state_dict(ckpt['model'])
+	# model.load_state_dict(ckpt['model'])
+	model.load_state_dict(ckpt['state_dict'])
 
 	data = [float(num) for num in input.split(',')]
 	data = np.array(data).reshape((1, -1))
