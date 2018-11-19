@@ -35,4 +35,4 @@ def normalize(data, mean_vec, std_vec, dim_use_vec):
 
 	data = (data - mean_vec) / std_vec
 
-	return data 
+	return data
