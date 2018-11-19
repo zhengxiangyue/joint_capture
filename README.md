@@ -1,4 +1,4 @@
-# 3D Human Pose Estimation
+# 3D Human Pose Estimation Using Single RGB Camera
 
 ![Screen Shot 2018-11-19 at 12.32.37 AM](./static/1.png)
 
@@ -34,8 +34,3 @@ rm h36m.zip
 
 ### Test
 `python 3d_pose_detection.py --test --load ./checkpoint/ckpt_60.pth.tar`
-
-
-
-
-
