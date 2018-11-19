@@ -19,6 +19,8 @@ def pose_detection(input):
 	# model.load_state_dict(ckpt['model'])
 	model.load_state_dict(ckpt['state_dict'])
 
+	model.eval()
+
 	data = [float(num) for num in input.split(',')]
 	data = np.array(data).reshape((1, -1))
 
