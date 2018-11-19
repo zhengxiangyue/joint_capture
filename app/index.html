@@ -26,6 +26,7 @@
             <div class="row" style="margin: 10px">
                 <button class="btn" onclick="startWebcam();">Start WebCam</button>
                 <button style="margin-left: 20px" class="btn" onclick="stopWebcam();">Stop WebCam</button>
+                <button style="margin-left: 20px" class="btn" onclick="usage();">How to use</button>
             </div>
             <div class="row">
 
@@ -135,6 +136,14 @@
         } else {
             console.log("getUserMedia not supported");
         }
+    }
+
+    function usage() {
+        alert(
+            "1. Start by clicking 'Start WebCam'\n" +
+            "2. Make sure a full human body shows in the camera\n" +
+            "3. The 3D constructed joints character will appear"
+        );
     }
 
     function stopWebcam() {
