@@ -10,11 +10,8 @@ def new_client(client, server):
 
 
 def message_received(client, server, message):
-	message = message.split(',')
-	if len(message) > 1 and message[0].isnumeric():
-		output = pose_detection(message)
-		server.send_message(client, output)
-		print output
+	output = pose_detection(message)
+	server.send_message(client, output)
 
 # Called for every client disconnecting
 def client_left(client, server):
