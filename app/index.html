@@ -327,24 +327,24 @@
 
                 socket.send(joints_sample);
 
-                // console.log(JSON.stringify([
-                //     joints['centerHip']['position'].x, joints['centerHip']['position'].y,
-                //     joints['leftHip']['position'].x, joints['leftHip']['position'].y,
-                //     joints['leftKnee']['position'].x, joints['leftKnee']['position'].y,
-                //     joints['leftAnkle']['position'].x, joints['leftAnkle']['position'].y,
-                //     joints['rightHip']['position'].x, joints['rightHip']['position'].y,
-                //     joints['rightKnee']['position'].x, joints['rightKnee']['position'].y,
-                //     joints['rightAnkle']['position'].x, joints['rightAnkle']['position'].y,
-                //     joints['spine']['position'].x, joints['spine']['position'].y,
-                //     joints['centerShoulder']['position'].x, joints['centerShoulder']['position'].y,
-                //     joints['nose']['position'].x, joints['nose']['position'].y,
-                //     joints['leftShoulder']['position'].x, joints['leftShoulder']['position'].y,
-                //     joints['leftElbow']['position'].x, joints['leftElbow']['position'].y,
-                //     joints['leftWrist']['position'].x, joints['leftWrist']['position'].y,
-                //     joints['rightShoulder']['position'].x, joints['rightShoulder']['position'].y,
-                //     joints['rightElbow']['position'].x, joints['rightElbow']['position'].y,
-                //     joints['rightWrist']['position'].x, joints['rightWrist']['position'].y,
-                // ]))
+                console.log(JSON.stringify([
+                    joints['centerHip']['position'].x, joints['centerHip']['position'].y,
+                    joints['leftHip']['position'].x, joints['leftHip']['position'].y,
+                    joints['leftKnee']['position'].x, joints['leftKnee']['position'].y,
+                    joints['leftAnkle']['position'].x, joints['leftAnkle']['position'].y,
+                    joints['rightHip']['position'].x, joints['rightHip']['position'].y,
+                    joints['rightKnee']['position'].x, joints['rightKnee']['position'].y,
+                    joints['rightAnkle']['position'].x, joints['rightAnkle']['position'].y,
+                    joints['spine']['position'].x, joints['spine']['position'].y,
+                    joints['centerShoulder']['position'].x, joints['centerShoulder']['position'].y,
+                    joints['nose']['position'].x, joints['nose']['position'].y,
+                    joints['leftShoulder']['position'].x, joints['leftShoulder']['position'].y,
+                    joints['leftElbow']['position'].x, joints['leftElbow']['position'].y,
+                    joints['leftWrist']['position'].x, joints['leftWrist']['position'].y,
+                    joints['rightShoulder']['position'].x, joints['rightShoulder']['position'].y,
+                    joints['rightElbow']['position'].x, joints['rightElbow']['position'].y,
+                    joints['rightWrist']['position'].x, joints['rightWrist']['position'].y,
+                ]));
             }
         });
         currentAnimationId = requestAnimationFrame(drawToCanvas);
