@@ -10,8 +10,8 @@ from src.utils import update_lr, unnormalize, sort_ckpt, normalize
 from torch.autograd import Variable
 
 def initial():
-	# model = LinearModel()
-	model = Model()
+	model = LinearModel()
+	# model = Model()
 	CUDA = torch.cuda.is_available()
 	if CUDA:
 		model = model.cuda()
