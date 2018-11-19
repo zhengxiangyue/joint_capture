@@ -75,10 +75,16 @@
     const scaleFactor = 0.50;
     const flipHorizontal = false;
     const outputStride = 16;
+    const scoreThreshold = 0.78;
     const imageElement = document.getElementById('video');
     const canvasElement = document.getElementById("myCanvas");
 
-    const socket = new WebSocket('ws://localhost:8001');
+    const server = "ws://localhost:8001";
+    const socket = new WebSocket(server);
+
+    socket.onerror = function (error) {
+        alert("Socket server " + server + " is not opening!!");
+    };
 
     const index_map = {
         'hip': 0,
@@ -107,8 +113,8 @@
         'lfoot': 5,
         'hip': 6,
         'spine': 7,
-        'neck':  8,
-        'head':  9,
+        'neck': 8,
+        'head': 9,
         'lshoulder': 10,
         'lelbow': 11,
         'lwrist': 12,
@@ -162,7 +168,7 @@
     function startWebcam() {
         if (navigator.getUserMedia) {
             navigator.getUserMedia(
-                {video: true, audio: true},
+                {video: true, audio: false},
                 stream => {
                     localStream = stream;
                     $('.local video').attr('src', URL.createObjectURL(stream));
@@ -264,47 +270,47 @@
             let ctx = canvasElement.getContext("2d");
             ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-            if (joints['nose']['score'] > 0.8 && joints['centerShoulder']['score'] > 0.8) {
+            if (joints['nose']['score'] > scoreThreshold && joints['centerShoulder']['score'] > scoreThreshold) {
                 drawLine(joints['nose'], joints['centerShoulder']);
             }
-            if (joints['centerShoulder']['score'] > 0.8 && joints['centerHip']['score'] > 0.8) {
+            if (joints['centerShoulder']['score'] > scoreThreshold && joints['centerHip']['score'] > scoreThreshold) {
                 drawLine(joints['centerShoulder'], joints['centerHip']);
             }
-            if (joints['leftShoulder']['score'] > 0.8 && joints['rightShoulder']['score'] > 0.8) {
+            if (joints['leftShoulder']['score'] > scoreThreshold && joints['rightShoulder']['score'] > scoreThreshold) {
                 drawLine(joints['leftShoulder'], joints['rightShoulder']);
             }
-            if (joints['leftShoulder']['score'] > 0.8 && joints['leftElbow']['score'] > 0.8) {
+            if (joints['leftShoulder']['score'] > scoreThreshold && joints['leftElbow']['score'] > scoreThreshold) {
                 drawLine(joints['leftShoulder'], joints['leftElbow']);
             }
-            if (joints['leftElbow']['score'] > 0.8 && joints['leftWrist']['score'] > 0.8) {
+            if (joints['leftElbow']['score'] > scoreThreshold && joints['leftWrist']['score'] > scoreThreshold) {
                 drawLine(joints['leftElbow'], joints['leftWrist']);
             }
-            if (joints['rightShoulder']['score'] > 0.8 && joints['rightElbow']['score'] > 0.8) {
+            if (joints['rightShoulder']['score'] > scoreThreshold && joints['rightElbow']['score'] > scoreThreshold) {
                 drawLine(joints['rightShoulder'], joints['rightElbow']);
             }
-            if (joints['rightElbow']['score'] > 0.8 && joints['rightWrist']['score'] > 0.8) {
+            if (joints['rightElbow']['score'] > scoreThreshold && joints['rightWrist']['score'] > scoreThreshold) {
                 drawLine(joints['rightElbow'], joints['rightWrist']);
             }
-            if (joints['centerHip']['score'] > 0.8 && joints['leftHip']['score'] > 0.8) {
+            if (joints['centerHip']['score'] > scoreThreshold && joints['leftHip']['score'] > scoreThreshold) {
                 drawLine(joints['centerHip'], joints['leftHip']);
             }
-            if (joints['leftHip']['score'] > 0.8 && joints['leftKnee']['score'] > 0.8) {
+            if (joints['leftHip']['score'] > scoreThreshold && joints['leftKnee']['score'] > scoreThreshold) {
                 drawLine(joints['leftHip'], joints['leftKnee']);
             }
-            if (joints['leftKnee']['score'] > 0.8 && joints['leftAnkle']['score'] > 0.8) {
+            if (joints['leftKnee']['score'] > scoreThreshold && joints['leftAnkle']['score'] > scoreThreshold) {
                 drawLine(joints['leftKnee'], joints['leftAnkle']);
             }
-            if (joints['centerHip']['score'] > 0.8 && joints['rightHip']['score'] > 0.8) {
+            if (joints['centerHip']['score'] > scoreThreshold && joints['rightHip']['score'] > scoreThreshold) {
                 drawLine(joints['centerHip'], joints['rightHip']);
             }
-            if (joints['rightHip']['score'] > 0.8 && joints['rightKnee']['score'] > 0.8) {
+            if (joints['rightHip']['score'] > scoreThreshold && joints['rightKnee']['score'] > scoreThreshold) {
                 drawLine(joints['rightHip'], joints['rightKnee']);
             }
-            if (joints['rightKnee']['score'] > 0.8 && joints['rightAnkle']['score'] > 0.8) {
+            if (joints['rightKnee']['score'] > scoreThreshold && joints['rightAnkle']['score'] > scoreThreshold) {
                 drawLine(joints['rightKnee'], joints['rightAnkle']);
             }
 
-            if (result['score'] > 0.8) {
+            if (result['score'] > scoreThreshold) {
 
                 joints_sample = [
                     [joints['centerHip']['position'].x, joints['centerHip']['position'].y],
