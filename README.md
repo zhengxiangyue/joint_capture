@@ -11,13 +11,15 @@
    cd joint_capture
    ```
 
-2. Open server
+2. Download dataset and model [Human36m](https://drive.google.com/file/d/1IbVK2fXcr77JyI_ntyRV6OvoLwoMSq3a/view) and put `data` folder in `joint_capture`
+
+3. Open server
 
    ```
    python service.py
    ```
 
-3. Open demo in browser `app/index.html`
+4. Open demo in browser `app/index.html`
 
 ## Dataset
 
