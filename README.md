@@ -1,5 +1,7 @@
 # 3D Human Pose Estimation
 
+![Screen Shot 2018-11-19 at 12.32.37 AM](/Users/zhengxiangyue/Projects/3d-pose/joint_capture/static/Screen Shot 2018-11-19 at 12.32.37 AM.png)
+
 ## Demo usage
 
 1. Clone project
