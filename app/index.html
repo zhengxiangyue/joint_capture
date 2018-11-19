@@ -7,6 +7,7 @@
     <base target="_blank">
 
     <title>Skeleton 3d reconstruction</title>
+
     <script src="js/jquery-3.1.1.min.js"></script>
     <script src="js/tfjs.js"></script>
     <script src="js/posenet.js"></script>
@@ -16,10 +17,10 @@
 
     <link href="css/bootstrap.min.css" rel="stylesheet">
 </head>
+
 <body>
 <div id="wrapper" class="centered">
     <div style="position: absolute" id="info"></div>
-
     <div>
         <div class="col-1 col"></div>
         <div class="col-10 col">
@@ -29,9 +30,7 @@
                 <button style="margin-left: 20px" class="btn" onclick="usage();">How to use</button>
             </div>
             <div class="row">
-
                 <div class="col-6">
-
                     <div class="video-wrapper local">
                         <video style="position: absolute;"
                                id="video"
@@ -45,126 +44,128 @@
                                 height="300px"></canvas>
                     </div>
                 </div>
-
-                <div class="col-6">
-
-                </div>
-
             </div>
-
-
         </div>
-        <div class="col-1 col"></div>
-
     </div>
-
 </div>
 
-<script>
-    let localStream;
-    let networks;
-    let currentAnimationId;
-    let joints_sample = [];
-    let joints_sample_3d = [];
-    for (let i = 0; i < 16; ++i) {
-        joints_sample_3d.push([0.0, 0.0, 0.0]);
-    }
+<script type="text/javascript">
 
-    let lines_3d = [];
+    let localStream;                                // web cam
 
-    const scaleFactor = 0.50;
+    let networks;                                   // tensorflojs network
+
+    let currentAnimationId;                         // animation id
+
+    let camera, controls, scene, renderer;          // 3d world
+
+    let joints_sample = [];                         // 2d joints will be send to the backend, as the 2nd networks input
+
+    let joints_sample_3d = [];                      // joints received from the backend
+
+    let lines_3d = [];                              // have access to drawn lines to conveniently destroy
+
+    const indexMap2d = {
+        'centerHip': 0,
+        'leftHip': 1,
+        'leftKnee': 2,
+        'leftAnkle': 3,
+        'rightHip': 4,
+        'rightKnee': 5,
+        'rightAnkle': 6,
+        'spine': 7,
+        'centerShoulder': 8,
+        'head': 9,
+        'leftShoulder': 10,
+        'leftElbow': 11,
+        'leftWrist': 12,
+        'rightShoulder': 13,
+        'rightElbow': 14,
+        'rightWrist': 15
+    };
+
+    const indexMap3d = {                            // joints index agreement
+        'rightHip': 0,
+        'rightKnee': 1,
+        'rightAnkle': 2,
+        'leftHip': 3,
+        'leftKnee': 4,
+        'leftAnkle': 5,
+        'centerHip': 6,
+        'spine': 7,
+        'centerShoulder': 8,
+        'head': 9,
+        'leftShoulder': 10,
+        'leftElbow': 11,
+        'leftWrist': 12,
+        'rightShoulder': 13,
+        'rightElbow': 14,
+        'rightWrist': 15
+    };
+
+    const linePairs = [
+        ['head', 'centerShoulder'],
+        ['centerShoulder', 'centerHip'],
+        ['leftShoulder', 'rightShoulder'],
+        ['leftShoulder', 'leftElbow'],
+        ['leftElbow', 'leftWrist'],
+        ['rightShoulder', 'rightElbow'],
+        ['rightElbow', 'rightWrist'],
+        ['centerHip', 'leftHip'],
+        ['leftHip', 'leftKnee'],
+        ['leftKnee', 'leftAnkle'],
+        ['leftKnee', 'leftAnkle'],
+        ['centerHip', 'rightHip'],
+        ['rightHip', 'rightKnee'],
+        ['rightKnee', 'rightAnkle'],
+    ];
+
+    const scaleFactor = 0.50;                       // 2d networks configurations
     const flipHorizontal = false;
     const outputStride = 16;
     const scoreThreshold = 0.78;
+
+    // 2d drawing canvas and webcam element
     const imageElement = document.getElementById('video');
     const canvasElement = document.getElementById("myCanvas");
 
+    // 2nd part networks are served through backend
     const server = "ws://localhost:8001";
     const socket = new WebSocket(server);
-
-    socket.onerror = function (error) {
-        alert("Socket server " + server + " is not opening!!");
-    };
-
-    const index_map = {
-        'hip': 0,
-        'lhip': 1,
-        'lknee': 2,
-        'lfoot': 3,
-        'rhip': 4,
-        'rknee': 5,
-        'rfoot': 6,
-        'spine': 7,
-        'neck': 8,
-        'head': 9,
-        'lshoulder': 10,
-        'lelbow': 11,
-        'lwrist': 12,
-        'rshoulder': 13,
-        'relbow': 14,
-        'rwrist': 15
-    };
-    const index_3d_map = {
-        'rhip':  0,
-        'rknee': 1,
-        'rfoot': 2,
-        'lhip': 3,
-        'lknee':  4,
-        'lfoot': 5,
-        'hip': 6,
-        'spine': 7,
-        'neck': 8,
-        'head': 9,
-        'lshoulder': 10,
-        'lelbow': 11,
-        'lwrist': 12,
-        'rshoulder': 13,
-        'relbow': 14,
-        'rwrist': 15
-    };
-
-    if (WEBGL.isWebGLAvailable() === false) {
-        document.getElementById("info").appendChild(WEBGL.getWebGLErrorMessage());
-    }
-
-    function convertTo3dJoints(result) {
-        // console.log(joints_sample_3d.length);
-        for (let i = 0; i < result.length; ++i) {
-            // console.log(i);
-            // console.log(parseInt(i / 3))
-            // console.log(joints_sample_3d[parseInt(i / 3)]);
-            joints_sample_3d[parseInt(i / 3)][i % 3] = result[i];
-        }
-    }
-
-    // Connection opened
-    socket.addEventListener('open', function (event) {
-        socket.send('Hello Server!');
-    });
-
-    // Listen for messages
-    socket.addEventListener('message', function (event) {
-
-        let result;
-        try {
-            result = JSON.parse(event.data)
-            // console.log(result);
-        } catch (e) {
-            console.log("received message format");
-            console.log(e);
-            return;
-            // console.log(event.data);
-        }
-
-        convertTo3dJoints(result);
-
-    });
-
-    let camera, controls, scene, renderer;
 
     init();
     animate();
 
+    // 2D drawing
+
+    /**
+     * Draw 2d lines on canvas
+     * */
+    function drawLine(_from, _to) {
+        let ctx = canvasElement.getContext("2d");
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#00ff00';
+        ctx.moveTo(_from['position'].x, _from['position'].y);
+        ctx.lineTo(_to['position'].x, _to['position'].y);
+        ctx.stroke();
+    }
+
+    // 3D drawing
+
+    /**
+     * Build joints_sample_3d from the result received from backend, a 48d vector.
+     * joints_sample_3d will be a 16 x 3 2d array
+     */
+    function convertTo3dJoints(result) {
+        for (let i = 0; i < result.length; ++i) {
+            joints_sample_3d[parseInt(i / 3)][i % 3] = result[i];
+        }
+    }
+
+    /**
+     *
+     */
     function startWebcam() {
         if (navigator.getUserMedia) {
             navigator.getUserMedia(
@@ -172,14 +173,12 @@
                 stream => {
                     localStream = stream;
                     $('.local video').attr('src', URL.createObjectURL(stream));
-
                     // load the posenet model
                     posenet.load().then(function (net) {
                         // posenet model loaded
                         networks = net;
-                        drawToCanvas();
+                        updateCanvas();
                     });
-
                 },
                 error => {
                     alert('error while accessing usermedia ' + error.toString());
@@ -190,6 +189,9 @@
         }
     }
 
+    /**
+     * Usage tutorial
+     * */
     function usage() {
         alert(
             "1. Start by clicking 'Start WebCam'\n" +
@@ -213,21 +215,9 @@
     }
 
     /**
-     * _from
-     * @param _from
-     * @param _to
-     */
-    function drawLine(_from, _to) {
-        let ctx = canvasElement.getContext("2d");
-        ctx.beginPath();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#00ff00';
-        ctx.moveTo(_from['position'].x, _from['position'].y);
-        ctx.lineTo(_to['position'].x, _to['position'].y);
-        ctx.stroke();
-    }
-
-    function drawToCanvas() {
+     * Use current image element's content to request 2d joints prediction and draw on the canvas
+     * */
+    function updateCanvas() {
 
         if (!localStream) {
             window.cancelAnimationFrame(currentAnimationId);
@@ -266,94 +256,30 @@
                     y: (joints['centerHip']['position'].y + joints['centerShoulder']['position'].y) * 0.5,
                 },
             };
+            joints['head'] = joints['nose'];
 
             let ctx = canvasElement.getContext("2d");
             ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-            if (joints['nose']['score'] > scoreThreshold && joints['centerShoulder']['score'] > scoreThreshold) {
-                drawLine(joints['nose'], joints['centerShoulder']);
-            }
-            if (joints['centerShoulder']['score'] > scoreThreshold && joints['centerHip']['score'] > scoreThreshold) {
-                drawLine(joints['centerShoulder'], joints['centerHip']);
-            }
-            if (joints['leftShoulder']['score'] > scoreThreshold && joints['rightShoulder']['score'] > scoreThreshold) {
-                drawLine(joints['leftShoulder'], joints['rightShoulder']);
-            }
-            if (joints['leftShoulder']['score'] > scoreThreshold && joints['leftElbow']['score'] > scoreThreshold) {
-                drawLine(joints['leftShoulder'], joints['leftElbow']);
-            }
-            if (joints['leftElbow']['score'] > scoreThreshold && joints['leftWrist']['score'] > scoreThreshold) {
-                drawLine(joints['leftElbow'], joints['leftWrist']);
-            }
-            if (joints['rightShoulder']['score'] > scoreThreshold && joints['rightElbow']['score'] > scoreThreshold) {
-                drawLine(joints['rightShoulder'], joints['rightElbow']);
-            }
-            if (joints['rightElbow']['score'] > scoreThreshold && joints['rightWrist']['score'] > scoreThreshold) {
-                drawLine(joints['rightElbow'], joints['rightWrist']);
-            }
-            if (joints['centerHip']['score'] > scoreThreshold && joints['leftHip']['score'] > scoreThreshold) {
-                drawLine(joints['centerHip'], joints['leftHip']);
-            }
-            if (joints['leftHip']['score'] > scoreThreshold && joints['leftKnee']['score'] > scoreThreshold) {
-                drawLine(joints['leftHip'], joints['leftKnee']);
-            }
-            if (joints['leftKnee']['score'] > scoreThreshold && joints['leftAnkle']['score'] > scoreThreshold) {
-                drawLine(joints['leftKnee'], joints['leftAnkle']);
-            }
-            if (joints['centerHip']['score'] > scoreThreshold && joints['rightHip']['score'] > scoreThreshold) {
-                drawLine(joints['centerHip'], joints['rightHip']);
-            }
-            if (joints['rightHip']['score'] > scoreThreshold && joints['rightKnee']['score'] > scoreThreshold) {
-                drawLine(joints['rightHip'], joints['rightKnee']);
-            }
-            if (joints['rightKnee']['score'] > scoreThreshold && joints['rightAnkle']['score'] > scoreThreshold) {
-                drawLine(joints['rightKnee'], joints['rightAnkle']);
+            for (let i = 0; i < linePairs.length; ++i) {
+                if (joints[linePairs[i][0]]['score'] > scoreThreshold && joints[linePairs[i][1]]['score']) {
+                    drawLine(joints[linePairs[i][0]], joints[linePairs[i][1]]);
+                }
             }
 
             if (result['score'] > scoreThreshold) {
-
-                joints_sample = [
-                    [joints['centerHip']['position'].x, joints['centerHip']['position'].y],
-                    [joints['leftHip']['position'].x, joints['leftHip']['position'].y],
-                    [joints['leftKnee']['position'].x, joints['leftKnee']['position'].y],
-                    [joints['leftAnkle']['position'].x, joints['leftAnkle']['position'].y],
-                    [joints['rightHip']['position'].x, joints['rightHip']['position'].y],
-                    [joints['rightKnee']['position'].x, joints['rightKnee']['position'].y],
-                    [joints['rightAnkle']['position'].x, joints['rightAnkle']['position'].y],
-                    [joints['spine']['position'].x, joints['spine']['position'].y],
-                    [joints['centerShoulder']['position'].x, joints['centerShoulder']['position'].y],
-                    [joints['nose']['position'].x, joints['nose']['position'].y],
-                    [joints['leftShoulder']['position'].x, joints['leftShoulder']['position'].y],
-                    [joints['leftElbow']['position'].x, joints['leftElbow']['position'].y],
-                    [joints['leftWrist']['position'].x, joints['leftWrist']['position'].y],
-                    [joints['rightShoulder']['position'].x, joints['rightShoulder']['position'].y],
-                    [joints['rightElbow']['position'].x, joints['rightElbow']['position'].y],
-                    [joints['rightWrist']['position'].x, joints['rightWrist']['position'].y],
-                ];
-
+                joints_sample = [];
+                for (let key in indexMap2d) {
+                    joints_sample.push([joints[key]['position'].x, joints[key]['position'].y]);
+                }
                 socket.send(joints_sample);
-
-                console.log(JSON.stringify([
-                    joints['centerHip']['position'].x, joints['centerHip']['position'].y,
-                    joints['leftHip']['position'].x, joints['leftHip']['position'].y,
-                    joints['leftKnee']['position'].x, joints['leftKnee']['position'].y,
-                    joints['leftAnkle']['position'].x, joints['leftAnkle']['position'].y,
-                    joints['rightHip']['position'].x, joints['rightHip']['position'].y,
-                    joints['rightKnee']['position'].x, joints['rightKnee']['position'].y,
-                    joints['rightAnkle']['position'].x, joints['rightAnkle']['position'].y,
-                    joints['spine']['position'].x, joints['spine']['position'].y,
-                    joints['centerShoulder']['position'].x, joints['centerShoulder']['position'].y,
-                    joints['nose']['position'].x, joints['nose']['position'].y,
-                    joints['leftShoulder']['position'].x, joints['leftShoulder']['position'].y,
-                    joints['leftElbow']['position'].x, joints['leftElbow']['position'].y,
-                    joints['leftWrist']['position'].x, joints['leftWrist']['position'].y,
-                    joints['rightShoulder']['position'].x, joints['rightShoulder']['position'].y,
-                    joints['rightElbow']['position'].x, joints['rightElbow']['position'].y,
-                    joints['rightWrist']['position'].x, joints['rightWrist']['position'].y,
-                ]));
             }
         });
-        currentAnimationId = requestAnimationFrame(drawToCanvas);
+
+        setTimeout(function(){
+            currentAnimationId = requestAnimationFrame(updateCanvas);
+        }, 100);
+
     }
 
     function normalize2d(array_2d, scale = 1.0) {
@@ -377,13 +303,42 @@
     }
 
     function generateVec3(joint_index, x_offset = 0, y_offset = 100, z_offset = 0) {
-        // return new THREE.Vector3(0 + x_offset, -joints_sample[joint_index][1] + y_offset, joints_sample[joint_index][0] + z_offset);
-        // console.log(joints_sample_3d);
         return new THREE.Vector3(0.2 * joints_sample_3d[joint_index][0] + x_offset, -0.2 * joints_sample_3d[joint_index][1] + y_offset, 0.2 * joints_sample_3d[joint_index][2] + z_offset);
     }
 
 
     function init() {
+
+        for (let i = 0; i < 16; ++i) {
+            joints_sample_3d.push([0.0, 0.0, 0.0]);
+        }
+
+        // connect to backend service
+
+        socket.onerror = function (error) {
+            alert("Socket server " + server + " is not opening!!");
+        };
+
+        socket.addEventListener('open', function (event) {
+            socket.send('Hi service.');
+        });
+
+        socket.addEventListener('message', function (event) {
+            let result;
+            try {
+                result = JSON.parse(event.data)
+            } catch (e) {
+                console.log("received message format", e);
+                return;
+            }
+            convertTo3dJoints(result);
+        });
+
+        // set up 3d scene
+
+        if (WEBGL.isWebGLAvailable() === false) {
+            document.getElementById("info").appendChild(WEBGL.getWebGLErrorMessage());
+        }
 
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x00ccff);
@@ -413,24 +368,24 @@
 
         // world
 
-        var axesHelper = new THREE.AxesHelper(1000);
+        let axesHelper = new THREE.AxesHelper(1000);
         scene.add(axesHelper);
 
         // ground
-        var mesh = new THREE.Mesh(new THREE.PlaneBufferGeometry(2000, 2000), new THREE.MeshPhongMaterial({
+        let mesh = new THREE.Mesh(new THREE.PlaneBufferGeometry(2000, 2000), new THREE.MeshPhongMaterial({
             color: 0x999999,
             depthWrite: false
         }));
         mesh.rotation.x = -Math.PI / 2;
         scene.add(mesh);
-        var grid = new THREE.GridHelper(200, 40, 0x000000, 0x000000);
+        let grid = new THREE.GridHelper(200, 40, 0x000000, 0x000000);
         grid.material.opacity = 0.2;
         grid.material.transparent = true;
         scene.add(grid);
 
         // lights
 
-        var light = new THREE.HemisphereLight(0xffffff, 0x444444);
+        let light = new THREE.HemisphereLight(0xffffff, 0x444444);
         light.position.set(0, 20, 0);
         scene.add(light);
         light = new THREE.DirectionalLight(0xffffff);
@@ -438,7 +393,6 @@
         scene.add(light);
 
         window.addEventListener('resize', onWindowResize, false);
-
     }
 
     function setLine(start, end) {
@@ -460,72 +414,26 @@
         scene.add(line);
     }
 
-    function addPlaneMesh() {
-        var geometry = new THREE.CylinderBufferGeometry(0, 10, 30, 4, 1);
-        var material = new THREE.MeshPhongMaterial({color: 0xffffff, flatShading: true});
-
-        for (var i = 0; i < 500; i++) {
-
-            var mesh = new THREE.Mesh(geometry, material);
-            mesh.position.x = Math.random() * 1600 - 800;
-            mesh.position.y = 0;
-            mesh.position.z = Math.random() * 1600 - 800;
-            mesh.updateMatrix();
-            mesh.matrixAutoUpdate = false;
-            scene.add(mesh);
-
-        }
-    }
-
     function onWindowResize() {
-
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
-
         renderer.setSize(window.innerWidth, window.innerHeight);
-
     }
 
     function animate() {
-
-        if (joints_sample_3d.length > 0 && (joints_sample_3d[0][0] != 0) || (joints_sample_3d[0][1] != 0) || (joints_sample_3d[0][2] != 0)) {
-
+        if (joints_sample_3d.length > 0 && (joints_sample_3d[0][0] !== 0) || (joints_sample_3d[0][1] !== 0) || (joints_sample_3d[0][2] !== 0)) {
             for (let i = 0; i < lines_3d.length; ++i) {
                 scene.remove(lines_3d[i]);
                 lines_3d[i].geometry.dispose();
                 lines_3d[i].material.dispose();
             }
-
             lines_3d = [];
-
-            // head, neck, Spine, hip
-            setLine(generateVec3(index_3d_map['head']), generateVec3(index_3d_map['neck']));
-            setLine(generateVec3(index_3d_map['neck']), generateVec3(index_3d_map['spine']));
-            setLine(generateVec3(index_3d_map['spine']), generateVec3(index_3d_map['hip']));
-            // l shoulder, neck, r shoulder
-            setLine(generateVec3(index_3d_map['lshoulder']), generateVec3(index_3d_map['neck']));
-            setLine(generateVec3(index_3d_map['neck']), generateVec3(index_3d_map['rshoulder']));
-            // l shoulder, l arm, l hand
-            setLine(generateVec3(index_3d_map['lshoulder']), generateVec3(index_3d_map['lelbow']));
-            setLine(generateVec3(index_3d_map['lelbow']), generateVec3(index_3d_map['lwrist']));
-            // r shoulder, r arm, r hand
-            setLine(generateVec3(index_3d_map['rshoulder']), generateVec3(index_3d_map['relbow']));
-            setLine(generateVec3(index_3d_map['relbow']), generateVec3(index_3d_map['rwrist']));
-            // l hip, hip, r hip
-            setLine(generateVec3(index_3d_map['lhip']), generateVec3(index_3d_map['hip']));
-            setLine(generateVec3(index_3d_map['hip']), generateVec3(index_3d_map['rhip']));
-            // l hip, l knee, l foot
-            setLine(generateVec3(index_3d_map['lhip']), generateVec3(index_3d_map['lknee']));
-            setLine(generateVec3(index_3d_map['lknee']), generateVec3(index_3d_map['lfoot']));
-            // r hip, r knee, r foot
-            setLine(generateVec3(index_3d_map['rhip']), generateVec3(index_3d_map['rknee']));
-            setLine(generateVec3(index_3d_map['rknee']), generateVec3(index_3d_map['rfoot']));
+            for (let i = 0; i < linePairs.length; ++i) {
+                setLine(generateVec3(indexMap3d[linePairs[i][0]]), generateVec3(indexMap3d[linePairs[i][1]]));
+            }
         }
-
         requestAnimationFrame(animate);
-
         render();
-
     }
 
     function render() {
