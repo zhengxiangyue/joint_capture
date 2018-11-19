@@ -10,8 +10,12 @@ def new_client(client, server):
 
 
 def message_received(client, server, message):
-	output = pose_detection(message)
-	server.send_message(client, output)
+    try:
+        result =pose_detection(message)[0].tolist()
+        server.send_message(client, json.dumps(result))
+    except Exception as e:
+        print(e)
+
 
 # Called for every client disconnecting
 def client_left(client, server):
