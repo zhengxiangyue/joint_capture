@@ -10,17 +10,17 @@ from src.utils import update_lr, unnormalize, sort_ckpt, normalize
 from torch.autograd import Variable
 
 def initial():
-	model = LinearModel()
-	# model = Model()
+	# model = LinearModel()
+	model = Model()
 	CUDA = torch.cuda.is_available()
 	if CUDA:
 		model = model.cuda()
 
-	# cktp_file = './checkpoint/ckpt_160.pth.tar'
-	cktp_file = './checkpoint/gt_ckpt_best.pth.tar'
+	cktp_file = './checkpoint/best.pth.tar'
+	# cktp_file = './checkpoint/gt_ckpt_best.pth.tar'
 	ckpt = torch.load(cktp_file, map_location=lambda storage, loc: storage)
-	# model.load_state_dict(ckpt['model'])
-	model.load_state_dict(ckpt['state_dict'])
+	model.load_state_dict(ckpt['model'])
+	# model.load_state_dict(ckpt['state_dict'])
 	return CUDA, model
 
 def pose_detection(input, model, CUDA):
