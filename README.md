@@ -36,3 +36,14 @@ rm h36m.zip
 
 ### Test
 `python 3d_pose_detection.py --test --load ./checkpoint/ckpt_60.pth.tar`
+
+## The project is based on
+
+```
+@inproceedings{martinez_2017_3dbaseline,
+  title={A simple yet effective baseline for 3d human pose estimation},
+  author={Martinez, Julieta and Hossain, Rayat and Romero, Javier and Little, James J.},
+  booktitle={ICCV},
+  year={2017}
+}
+```

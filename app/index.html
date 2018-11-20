@@ -16,6 +16,13 @@
     <script src="js/WebGL.js"></script>
 
     <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        video {
+            -webkit-transform: scaleX(-1);
+            transform: scaleX(-1);
+        }
+    </style>
 </head>
 
 <body>
@@ -103,7 +110,7 @@
         'rightWrist': 15
     };
 
-    const linePairs = [
+    const linePairs = [                             // lines that consit a human skeleton
         ['head', 'centerShoulder'],
         ['centerShoulder', 'centerHip'],
         ['leftShoulder', 'rightShoulder'],
@@ -121,7 +128,7 @@
     ];
 
     const scaleFactor = 0.50;                       // 2d networks configurations
-    const flipHorizontal = false;
+    const flipHorizontal = true;
     const outputStride = 16;
     const scoreThreshold = 0.78;
 
@@ -132,9 +139,6 @@
     // 2nd part networks are served through backend
     const server = "ws://localhost:8001";
     const socket = new WebSocket(server);
-
-    init();
-    animate();
 
     // 2D drawing
 
@@ -151,67 +155,30 @@
         ctx.stroke();
     }
 
-    // 3D drawing
-
-    /**
-     * Build joints_sample_3d from the result received from backend, a 48d vector.
-     * joints_sample_3d will be a 16 x 3 2d array
-     */
-    function convertTo3dJoints(result) {
-        for (let i = 0; i < result.length; ++i) {
-            joints_sample_3d[parseInt(i / 3)][i % 3] = result[i];
-        }
-    }
-
     /**
      *
+     * @param array_2d
+     * @param scale
+     * @returns {*}
      */
-    function startWebcam() {
-        if (navigator.getUserMedia) {
-            navigator.getUserMedia(
-                {video: true, audio: false},
-                stream => {
-                    localStream = stream;
-                    $('.local video').attr('src', URL.createObjectURL(stream));
-                    // load the posenet model
-                    posenet.load().then(function (net) {
-                        // posenet model loaded
-                        networks = net;
-                        updateCanvas();
-                    });
-                },
-                error => {
-                    alert('error while accessing usermedia ' + error.toString());
-                }
-            );
-        } else {
-            console.log("getUserMedia not supported");
-        }
-    }
+    function normalize2d(array_2d, scale = 1.0) {
+        let _min = Infinity;
+        let _max = -Infinity;
 
-    /**
-     * Usage tutorial
-     * */
-    function usage() {
-        alert(
-            "1. Start by clicking 'Start WebCam'\n" +
-            "2. Make sure a full human body shows in the camera\n" +
-            "3. The 3D constructed joints character will appear"
-        );
-    }
-
-    function stopWebcam() {
-        try {
-            localStream.stop();
-        } catch (e) {
-            console.log(e);
-            if (localStream) {
-                localStream.getTracks().forEach(function (track) {
-                    track.stop();
-                });
+        for (let i = 0; i < array_2d.length; ++i) {
+            for (let j = 0; j < array_2d[i].length; ++j) {
+                _min = Math.min(_min, array_2d[i][j]);
+                _max = Math.max(_max, array_2d[i][j]);
             }
         }
-        localStream = undefined;
+
+        for (let i = 0; i < array_2d.length; ++i) {
+            for (let j = 0; j < array_2d[i].length; ++j) {
+                array_2d[i][j] = scale * (array_2d[i][j] - _min) / (_max - _min);
+            }
+        }
+
+        return array_2d
     }
 
     /**
@@ -276,37 +243,137 @@
             }
         });
 
-        setTimeout(function(){
+        setTimeout(function () {
             currentAnimationId = requestAnimationFrame(updateCanvas);
         }, 100);
 
     }
 
-    function normalize2d(array_2d, scale = 1.0) {
-        let _min = Infinity;
-        let _max = -Infinity;
+    // 3D drawing
 
-        for (let i = 0; i < array_2d.length; ++i) {
-            for (let j = 0; j < array_2d[i].length; ++j) {
-                _min = Math.min(_min, array_2d[i][j]);
-                _max = Math.max(_max, array_2d[i][j]);
-            }
+    /**
+     * Build joints_sample_3d from the result received from backend, a 48d vector.
+     * joints_sample_3d will be a 16 x 3 2d array
+     */
+    function convertTo3dJoints(result) {
+        for (let i = 0; i < result.length; ++i) {
+            joints_sample_3d[parseInt(i / 3)][i % 3] = result[i];
         }
-
-        for (let i = 0; i < array_2d.length; ++i) {
-            for (let j = 0; j < array_2d[i].length; ++j) {
-                array_2d[i][j] = scale * (array_2d[i][j] - _min) / (_max - _min);
-            }
-        }
-
-        return array_2d
     }
 
-    function generateVec3(joint_index, x_offset = 0, y_offset = 100, z_offset = 0) {
-        return new THREE.Vector3(0.2 * joints_sample_3d[joint_index][0] + x_offset, -0.2 * joints_sample_3d[joint_index][1] + y_offset, 0.2 * joints_sample_3d[joint_index][2] + z_offset);
+    /**
+     *
+     * @param start
+     * @param end
+     */
+    function setLine(start, end) {
+        let material = new THREE.LineBasicMaterial({
+            color: 0x000000,
+            linewidth: 10,
+            linecap: 'round', //ignored by WebGLRenderer
+            linejoin: 'round' //ignored by WebGLRenderer
+        });
+        // material.linewidth = 100.0;
+        // material.lights = true;
+        let geometry = new THREE.Geometry();
+        geometry.vertices.push(start);
+        geometry.vertices.push(end);
+        // geometry.vertices.push(new THREE.Vector3(10, 0, 0));
+        let line = new THREE.LineSegments(geometry, material);
+        lines_3d.push(line);
+        scene.add(line);
     }
 
+    /**
+     * Based on current content in joints_sample_3d, draw the line pairs in the scene
+     */
+    function updateScene() {
+        if (joints_sample_3d.length > 0 && (joints_sample_3d[0][0] !== 0) || (joints_sample_3d[0][1] !== 0) || (joints_sample_3d[0][2] !== 0)) {
+            for (let i = 0; i < lines_3d.length; ++i) {
+                scene.remove(lines_3d[i]);
+                lines_3d[i].geometry.dispose();
+                lines_3d[i].material.dispose();
+            }
+            lines_3d = [];
+            for (let i = 0; i < linePairs.length; ++i) {
+                setLine(generateVec3(indexMap3d[linePairs[i][0]]), generateVec3(indexMap3d[linePairs[i][1]]));
+            }
+        }
+    }
 
+    /**
+     *
+     * @param joint_index
+     * @param x_offset
+     * @param y_offset
+     * @param z_offset
+     * @returns {Vector3}
+     */
+    function generateVec3(joint_index, x_offset = 0, y_offset = 200, z_offset = 0) {
+        let world_coordinate = new THREE.Vector3(0.2 * joints_sample_3d[joint_index][0] + x_offset, -0.2 * joints_sample_3d[joint_index][1] + y_offset, 0.2 * joints_sample_3d[joint_index][2] + z_offset);
+        world_coordinate.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 4);
+        return world_coordinate;
+    }
+
+    // infrastructures
+
+    /**
+     * Alert messages for usage
+     */
+    function usage() {
+        alert(
+            "1. Start by clicking 'Start WebCam'\n" +
+            "2. Make sure a full human body shows in the camera\n" +
+            "3. The 3D constructed joints character will appear"
+        );
+    }
+
+    /**
+     * Open camera, while set up the 1st part network
+     */
+    function startWebcam() {
+        if (navigator.getUserMedia) {
+            navigator.getUserMedia(
+                {video: true, audio: false},
+                stream => {
+                    localStream = stream;
+                    $('.local video').attr('src', URL.createObjectURL(stream));
+                    // load the posenet model
+                    posenet.load().then(function (net) {
+                        // posenet model loaded
+                        networks = net;
+                        updateCanvas();
+                    });
+                },
+                error => {
+                    alert('error while accessing usermedia ' + error.toString());
+                }
+            );
+        } else {
+            console.log("getUserMedia not supported");
+        }
+    }
+
+    /**
+     * Stop camera
+     */
+    function stopWebcam() {
+        try {
+            localStream.stop();
+        } catch (e) {
+            console.log(e);
+            if (localStream) {
+                localStream.getTracks().forEach(function (track) {
+                    track.stop();
+                });
+            }
+        }
+        localStream = undefined;
+    }
+
+    /**
+     * Things start from here
+     */
     function init() {
 
         for (let i = 0; i < 16; ++i) {
@@ -342,14 +409,14 @@
 
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x00ccff);
-        scene.fog = new THREE.FogExp2(0xcccccc, 0.002);
+        // scene.fog = new THREE.FogExp2(0xcccccc, 0.002);
 
         renderer = new THREE.WebGLRenderer({antialias: true});
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById("info").appendChild(renderer.domElement);
 
-        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 5000);
         camera.position.set(400, 200, 0);
 
         // controls
@@ -395,25 +462,6 @@
         window.addEventListener('resize', onWindowResize, false);
     }
 
-    function setLine(start, end) {
-        // console.log(start);
-        let material = new THREE.LineBasicMaterial({
-            color: 0x000000,
-            linewidth: 10,
-            linecap: 'round', //ignored by WebGLRenderer
-            linejoin: 'round' //ignored by WebGLRenderer
-        });
-        // material.linewidth = 100.0;
-        // material.lights = true;
-        let geometry = new THREE.Geometry();
-        geometry.vertices.push(start);
-        geometry.vertices.push(end);
-        // geometry.vertices.push(new THREE.Vector3(10, 0, 0));
-        let line = new THREE.LineSegments(geometry, material);
-        lines_3d.push(line);
-        scene.add(line);
-    }
-
     function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -421,17 +469,7 @@
     }
 
     function animate() {
-        if (joints_sample_3d.length > 0 && (joints_sample_3d[0][0] !== 0) || (joints_sample_3d[0][1] !== 0) || (joints_sample_3d[0][2] !== 0)) {
-            for (let i = 0; i < lines_3d.length; ++i) {
-                scene.remove(lines_3d[i]);
-                lines_3d[i].geometry.dispose();
-                lines_3d[i].material.dispose();
-            }
-            lines_3d = [];
-            for (let i = 0; i < linePairs.length; ++i) {
-                setLine(generateVec3(indexMap3d[linePairs[i][0]]), generateVec3(indexMap3d[linePairs[i][1]]));
-            }
-        }
+        updateScene()
         requestAnimationFrame(animate);
         render();
     }
@@ -439,6 +477,9 @@
     function render() {
         renderer.render(scene, camera);
     }
+
+    init();
+    animate();
 
 </script>
 </body>
