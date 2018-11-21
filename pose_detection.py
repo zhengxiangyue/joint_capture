@@ -16,7 +16,7 @@ def initial():
 	if CUDA:
 		model = model.cuda()
 
-	cktp_file = './checkpoint/best.pth.tar'
+	cktp_file = './checkpoint/ckpt_50.pth.tar'
 	# cktp_file = './checkpoint/gt_ckpt_best.pth.tar'
 	ckpt = torch.load(cktp_file, map_location=lambda storage, loc: storage)
 	model.load_state_dict(ckpt['model'])
