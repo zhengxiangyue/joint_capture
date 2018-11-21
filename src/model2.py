@@ -6,7 +6,7 @@ import torch.nn as nn
 
 def weight_init(x):
 	if isinstance(x, nn.Linear):
-		nn.init.kaiming_normal(x.weight)
+		nn.init.kaiming_normal_(x.weight)
 
 class LinearUnit(nn.Module):
 	def __init__(self, linear_size, p_dropout = 0.5):
@@ -14,20 +14,22 @@ class LinearUnit(nn.Module):
 		self.linear_size = linear_size
 		self.p_dropout = p_dropout
 		#layers
-		self.linear = nn.Linear(linear_size, linear_size)
-		self.batch_norm = nn.BatchNorm1d(self.linear_size)
+		self.linear1 = nn.Linear(self.linear_size, self.linear_size)
+		self.batch_norm1 = nn.BatchNorm1d(self.linear_size)
+		self.linear2 = nn.Linear(self.linear_size, self.linear_size)
+		self.batch_norm2 = nn.BatchNorm1d(self.linear_size)
 		self.drop_out = nn.Dropout(self.p_dropout)
 		self.relu = nn.ReLU(inplace=True)
 
 	def forward(self, x):
 		#stage 1
-		y = self.linear(x)
-		y = self.batch_norm(y)
+		y = self.linear1(x)
+		y = self.batch_norm1(y)
 		y = self.relu(y)
 		y = self.drop_out(y)
 		#stage 2
-		y = self.linear(y)
-		y = self.batch_norm(y)
+		y = self.linear2(y)
+		y = self.batch_norm2(y)
 		y = self.relu(y)
 		y = self.drop_out(y)
 
