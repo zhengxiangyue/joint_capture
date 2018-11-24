@@ -6,3 +6,5 @@ dist/
 
 /data/
 *.pyc
+
+src/2d_joints/models/

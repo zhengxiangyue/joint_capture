@@ -18,7 +18,7 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
     <style>
-        video {
+        #imageCanvas {
             -webkit-transform: scaleX(-1);
             transform: scaleX(-1);
         }
@@ -39,16 +39,9 @@
             <div class="row">
                 <div class="col-6">
                     <div class="video-wrapper local">
-                        <video style="position: absolute;"
-                               id="video"
-                               width="400px"
-                               height="300px"
-                               autoplay=""
-                               playsinline=""></video>
-                        <canvas style="position: absolute;border: #1c7430 solid 2px;display: inline-block"
-                                id="myCanvas"
-                                width="400px"
-                                height="300px"></canvas>
+                        <video style="display:none;" id="video" autoplay="" playsinline=""></video>
+                        <canvas style="position: absolute;z-index: 1" id="poseCanvas"></canvas>
+                        <canvas style="position: absolute;z-index: 0" id="imageCanvas"></canvas>
                     </div>
                 </div>
             </div>
@@ -71,6 +64,7 @@
     let joints_sample_3d = [];                      // joints received from the backend
 
     let lines_3d = [];                              // have access to drawn lines to conveniently destroy
+    let sphere_3d = [];
 
     const indexMap2d = {
         'centerHip': 0,
@@ -134,7 +128,11 @@
 
     // 2d drawing canvas and webcam element
     const imageElement = document.getElementById('video');
-    const canvasElement = document.getElementById("myCanvas");
+    const poseCanvasElement = document.getElementById("poseCanvas");
+    const imageCanvasElement = document.getElementById("imageCanvas");
+
+    const poseContext = poseCanvasElement.getContext("2d");
+    const imageContext = imageCanvasElement.getContext("2d");
 
     // 2nd part networks are served through backend
     const server = "ws://localhost:8001";
@@ -146,13 +144,12 @@
      * Draw 2d lines on canvas
      * */
     function drawLine(_from, _to) {
-        let ctx = canvasElement.getContext("2d");
-        ctx.beginPath();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#00ff00';
-        ctx.moveTo(_from['position'].x, _from['position'].y);
-        ctx.lineTo(_to['position'].x, _to['position'].y);
-        ctx.stroke();
+        poseContext.beginPath();
+        poseContext.lineWidth = 2;
+        poseContext.strokeStyle = '#00ff00';
+        poseContext.moveTo(_from['position'].x, _from['position'].y);
+        poseContext.lineTo(_to['position'].x, _to['position'].y);
+        poseContext.stroke();
     }
 
     /**
@@ -191,7 +188,11 @@
             return;
         }
 
-        networks.estimateSinglePose(imageElement, scaleFactor, flipHorizontal, outputStride).then(function (result) {
+        // get canvas data from img
+        imageContext.drawImage(imageElement, 0, 0);
+
+        // console.log(c.toDataURL());
+        networks.estimateSinglePose(imageCanvasElement, scaleFactor, flipHorizontal, outputStride).then(function (result) {
 
             let joints = {};
             for (let i = 0; i < result['keypoints'].length; ++i) {
@@ -225,8 +226,7 @@
             };
             joints['head'] = joints['nose'];
 
-            let ctx = canvasElement.getContext("2d");
-            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            poseContext.clearRect(0, 0, poseCanvasElement.width, poseCanvasElement.height);
 
             for (let i = 0; i < linePairs.length; ++i) {
                 if (joints[linePairs[i][0]]['score'] > scoreThreshold && joints[linePairs[i][1]]['score']) {
@@ -262,13 +262,14 @@
     }
 
     /**
-     *
+     * Draw 3d line in the scene
      * @param start
      * @param end
+     * @param color
      */
-    function setLine(start, end) {
+    function setLine(start, end, color = 0x000000) {
         let material = new THREE.LineBasicMaterial({
-            color: 0x000000,
+            color: color,
             linewidth: 10,
             linecap: 'round', //ignored by WebGLRenderer
             linejoin: 'round' //ignored by WebGLRenderer
@@ -285,6 +286,19 @@
     }
 
     /**
+     * Draw sphere in the scene
+     */
+    function setSphere(position, radius, color = 0xffff00) {
+        var geometry = new THREE.SphereBufferGeometry(radius, 8, 8);
+        var material = new THREE.MeshPhongMaterial({color: color});
+        var sphere = new THREE.Mesh(geometry, material);
+        sphere.position.set(position.x, position.y, position.z);
+        scene.add(sphere);
+        sphere_3d.push(sphere);
+        //
+    }
+
+    /**
      * Based on current content in joints_sample_3d, draw the line pairs in the scene
      */
     function updateScene() {
@@ -295,8 +309,20 @@
                 lines_3d[i].material.dispose();
             }
             lines_3d = [];
+
+            for (let i = 0; i < sphere_3d.length; ++i) {
+                scene.remove(sphere_3d[i]);
+                sphere_3d[i].geometry.dispose();
+                sphere_3d[i].material.dispose();
+            }
+            sphere_3d = [];
+
             for (let i = 0; i < linePairs.length; ++i) {
-                setLine(generateVec3(indexMap3d[linePairs[i][0]]), generateVec3(indexMap3d[linePairs[i][1]]));
+                setLine(generateVec3(indexMap3d[linePairs[i][0]]), generateVec3(indexMap3d[linePairs[i][1]]), linePairs[i][2]);
+            }
+
+            for (let each in indexMap3d) {
+                setSphere(generateVec3(indexMap3d[each]), 5, 'gray');
             }
         }
     }
@@ -334,7 +360,7 @@
     function startWebcam() {
         if (navigator.getUserMedia) {
             navigator.getUserMedia(
-                {video: true, audio: false},
+                {video: true, audio: false, video: {width: 400}},
                 stream => {
                     localStream = stream;
                     $('.local video').attr('src', URL.createObjectURL(stream));
@@ -342,6 +368,13 @@
                     posenet.load().then(function (net) {
                         // posenet model loaded
                         networks = net;
+
+                        imageContext.canvas.width = imageElement.videoWidth;
+                        imageContext.canvas.height = imageElement.videoHeight;
+
+                        poseContext.canvas.width = imageElement.videoWidth;
+                        poseContext.canvas.height = imageElement.videoHeight;
+
                         updateCanvas();
                     });
                 },
@@ -372,7 +405,7 @@
     }
 
     /**
-     * Things start from here
+     * Things start here
      */
     function init() {
 
@@ -428,8 +461,8 @@
 
         controls.screenSpacePanning = false;
 
-        controls.minDistance = 100;
-        controls.maxDistance = 500;
+        controls.minDistance = 0;
+        controls.maxDistance = 900;
 
         controls.maxPolarAngle = Math.PI / 2;
 
