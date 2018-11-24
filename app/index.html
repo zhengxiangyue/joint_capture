@@ -18,7 +18,7 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
     <style>
-        #imageCanvas {
+        #video {
             -webkit-transform: scaleX(-1);
             transform: scaleX(-1);
         }
@@ -43,8 +43,8 @@
             <div class="row">
                 <div class="col-6">
                     <div class="video-wrapper local">
-                        <video style="display:none;" id="video" autoplay="" playsinline=""></video>
-                        <canvas style="display:none;position: absolute;z-index: 1" id="poseCanvas"></canvas>
+                        <video id="video" style="position: absolute;width: 300px" autoplay="" playsinline=""></video>
+                        <canvas style="width: 300px;position: absolute;z-index: 1" id="poseCanvas"></canvas>
                         <canvas style="display:none;position: absolute;z-index: 0" id="imageCanvas"></canvas>
                     </div>
                 </div>
@@ -130,6 +130,8 @@
     const outputStride = 16;
     const scoreThreshold = 0.58;
 
+    const canvasFactor = 300.0 / 1024.0;
+
     // 2d drawing canvas and webcam element
     const imageElement = document.getElementById('video');
     const poseCanvasElement = document.getElementById("poseCanvas");
@@ -151,8 +153,8 @@
         poseContext.beginPath();
         poseContext.lineWidth = 2;
         poseContext.strokeStyle = '#00ff00';
-        poseContext.moveTo(_from['position'].x, _from['position'].y);
-        poseContext.lineTo(_to['position'].x, _to['position'].y);
+        poseContext.moveTo(canvasFactor * _from['position'].x, canvasFactor * _from['position'].y);
+        poseContext.lineTo(canvasFactor * _to['position'].x, canvasFactor * _to['position'].y);
         poseContext.stroke();
     }
 
@@ -243,7 +245,6 @@
                 for (let key in indexMap2d) {
                     joints_sample.push([joints[key]['position'].x, joints[key]['position'].y]);
                 }
-                console.log(imageContext.getImageData(0, 0, imageContext.canvas.width, imageContext.canvas.height));
                 socket.send(joints_sample);
             }
         });
@@ -376,9 +377,6 @@
 
                         imageContext.canvas.width = imageElement.videoWidth;
                         imageContext.canvas.height = imageElement.videoHeight;
-
-                        poseContext.canvas.width = imageElement.videoWidth;
-                        poseContext.canvas.height = imageElement.videoHeight;
 
                         updateCanvas();
                     });
