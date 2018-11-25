@@ -8,3 +8,4 @@ dist/
 *.pyc
 
 src/2d_joints/models/
+src/models/
