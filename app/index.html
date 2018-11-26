@@ -36,15 +36,19 @@
         <div class="col-1 col"></div>
         <div class="col-10 col">
             <div class="row" style="margin: 10px">
-                <!--<button class="btn" onclick="startWebcam();">Start WebCam</button>-->
-                <!--<button style="margin-left: 20px" class="btn" onclick="stopWebcam();">Stop WebCam</button>-->
+                <button class="btn" onclick="startWebcam();">Start WebCam</button>
+                <button class="btn" onclick="startVideo();">Start Video</button>
+
+                <button style="margin-left: 20px" class="btn" onclick="stopWebcam();">Stop WebCam</button>
                 <button style="margin-left: 20px" class="btn" onclick="usage();">How to use</button>
             </div>
             <div class="row">
                 <div class="col-6">
                     <div class="video-wrapper local">
-                        <video id="video" style="position: absolute;width: 300px" autoplay="" playsinline=""></video>
-                        <canvas style="width: 300px;position: absolute;z-index: 1" id="poseCanvas"></canvas>
+                        <video id="video" style="position: absolute;width: 900px;height: 600px" autoplay=""
+                               playsinline=""></video>
+                        <canvas style="width: 900px;height: 600px;position: absolute;z-index: 1"
+                                id="poseCanvas"></canvas>
                         <canvas style="display:none;position: absolute;z-index: 0" id="imageCanvas"></canvas>
                     </div>
                 </div>
@@ -110,8 +114,10 @@
 
     const linePairs = [                             // lines that consit a human skeleton
         ['head', 'centerShoulder'],
-        ['centerShoulder', 'centerHip'],
-        ['leftShoulder', 'rightShoulder'],
+        ['centerShoulder', 'spine'],
+        ['spine', 'centerHip'],
+        ['leftShoulder', 'centerShoulder'],
+        ['centerShoulder', 'rightShoulder'],
         ['leftShoulder', 'leftElbow'],
         ['leftElbow', 'leftWrist'],
         ['rightShoulder', 'rightElbow'],
@@ -189,69 +195,66 @@
      * */
     function updateCanvas() {
 
-        if (!localStream) {
-            window.cancelAnimationFrame(currentAnimationId);
-            return;
-        }
-
         // get canvas data from img
         imageContext.drawImage(imageElement, 0, 0);
 
         // console.log(c.toDataURL());
-        // networks.estimateSinglePose(imageCanvasElement, scaleFactor, flipHorizontal, outputStride).then(function (result) {
-        //
-        //     let joints = {};
-        //     for (let i = 0; i < result['keypoints'].length; ++i) {
-        //         joints[result['keypoints'][i]['part']] = result['keypoints'][i];
-        //     }
-        //
-        //     // calculate center shoulder
-        //     joints['centerShoulder'] = {
-        //         score: (joints['leftShoulder']['score'] + joints['rightShoulder']['score']) * 0.5,
-        //         part: 'centerShoulder',
-        //         position: {
-        //             x: (joints['leftShoulder']['position'].x + joints['rightShoulder']['position'].x) * 0.5,
-        //             y: (joints['leftShoulder']['position'].y + joints['rightShoulder']['position'].y) * 0.5
-        //         },
-        //     };
-        //     joints['centerHip'] = {
-        //         score: (joints['leftHip']['score'] + joints['rightHip']['score']) * 0.5,
-        //         part: 'centerHip',
-        //         position: {
-        //             x: (joints['leftHip']['position'].x + joints['rightHip']['position'].x) * 0.5,
-        //             y: (joints['leftHip']['position'].y + joints['rightHip']['position'].y) * 0.5,
-        //         },
-        //     };
-        //     joints['spine'] = {
-        //         score: (joints['centerHip']['score'] + joints['centerShoulder']['score']) * 0.5,
-        //         part: 'spine',
-        //         position: {
-        //             x: (joints['centerHip']['position'].x + joints['centerShoulder']['position'].x) * 0.5,
-        //             y: (joints['centerHip']['position'].y + joints['centerShoulder']['position'].y) * 0.5,
-        //         },
-        //     };
-        //     joints['head'] = joints['nose'];
-        //
-        //     poseContext.clearRect(0, 0, poseCanvasElement.width, poseCanvasElement.height);
-        //
-        //     for (let i = 0; i < linePairs.length; ++i) {
-        //         if (joints[linePairs[i][0]]['score'] > scoreThreshold && joints[linePairs[i][1]]['score']) {
-        //             drawLine(joints[linePairs[i][0]], joints[linePairs[i][1]]);
-        //         }
-        //     }
-        //
-        //     if (result['score'] > scoreThreshold) {
-        //         joints_sample = [];
-        //         for (let key in indexMap2d) {
-        //             joints_sample.push([joints[key]['position'].x, joints[key]['position'].y]);
-        //         }
-        //         socket.send(joints_sample);
-        //     }
-        // });
+        networks.estimateSinglePose(imageCanvasElement, scaleFactor, flipHorizontal, outputStride).then(function (result) {
 
-        // setTimeout(function () {
-        //     currentAnimationId = requestAnimationFrame(updateCanvas);
-        // }, 100);
+            console.log(result);
+
+            let joints = {};
+            for (let i = 0; i < result['keypoints'].length; ++i) {
+                joints[result['keypoints'][i]['part']] = result['keypoints'][i];
+            }
+
+            // calculate center shoulder
+            joints['centerShoulder'] = {
+                score: (joints['leftShoulder']['score'] + joints['rightShoulder']['score']) * 0.5,
+                part: 'centerShoulder',
+                position: {
+                    x: (joints['leftShoulder']['position'].x + joints['rightShoulder']['position'].x) * 0.5,
+                    y: (joints['leftShoulder']['position'].y + joints['rightShoulder']['position'].y) * 0.5
+                },
+            };
+            joints['centerHip'] = {
+                score: (joints['leftHip']['score'] + joints['rightHip']['score']) * 0.5,
+                part: 'centerHip',
+                position: {
+                    x: (joints['leftHip']['position'].x + joints['rightHip']['position'].x) * 0.5,
+                    y: (joints['leftHip']['position'].y + joints['rightHip']['position'].y) * 0.5,
+                },
+            };
+            joints['spine'] = {
+                score: (joints['centerHip']['score'] + joints['centerShoulder']['score']) * 0.5,
+                part: 'spine',
+                position: {
+                    x: (joints['centerHip']['position'].x + joints['centerShoulder']['position'].x) * 0.5,
+                    y: (joints['centerHip']['position'].y + joints['centerShoulder']['position'].y) * 0.5,
+                },
+            };
+            joints['head'] = joints['nose'];
+
+            poseContext.clearRect(0, 0, poseCanvasElement.width, poseCanvasElement.height);
+
+            for (let i = 0; i < linePairs.length; ++i) {
+                if (joints[linePairs[i][0]]['score'] > scoreThreshold && joints[linePairs[i][1]]['score']) {
+                    drawLine(joints[linePairs[i][0]], joints[linePairs[i][1]]);
+                }
+            }
+
+            if (result['score'] > scoreThreshold) {
+                joints_sample = [];
+                for (let key in indexMap2d) {
+                    joints_sample.push([joints[key]['position'].x, joints[key]['position'].y]);
+                }
+                socket.send(joints_sample);
+            }
+        });
+
+        setTimeout(function () {
+            currentAnimationId = requestAnimationFrame(updateCanvas);
+        }, 100);
 
     }
 
@@ -354,9 +357,8 @@
      */
     function usage() {
         alert(
-            "1. Start by clicking 'Start WebCam'\n" +
-            "2. Make sure a full human body shows in the camera\n" +
-            "3. The 3D constructed joints character will appear"
+            "1. Start server srcipt src/run_webcam.py \n" +
+            "2. Refresh this page \n"
         );
     }
 
@@ -388,6 +390,20 @@
         } else {
             console.log("getUserMedia not supported");
         }
+    }
+
+
+    function startVideo() {
+
+        posenet.load().then(function (net) {
+            // posenet model loaded
+            networks = net;
+            imageElement.src = "sample.mp4";
+            imageElement.load();
+            imageContext.canvas.width = 900;
+            imageContext.canvas.height = 600;
+            updateCanvas();
+        });
     }
 
     /**
@@ -445,8 +461,10 @@
         }
 
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x00ccff);
-        // scene.fog = new THREE.FogExp2(0xcccccc, 0.002);
+
+        // sky
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.FogExp2(0xcccccc, 0.0002);
 
         renderer = new THREE.WebGLRenderer({antialias: true});
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -466,23 +484,24 @@
         controls.screenSpacePanning = false;
 
         controls.minDistance = 0;
-        controls.maxDistance = 900;
+        controls.maxDistance = 2000;
 
         controls.maxPolarAngle = Math.PI / 2;
 
         // world
 
-        let axesHelper = new THREE.AxesHelper(1000);
+        let axesHelper = new THREE.AxesHelper(1100);
         scene.add(axesHelper);
 
         // ground
         let mesh = new THREE.Mesh(new THREE.PlaneBufferGeometry(2000, 2000), new THREE.MeshPhongMaterial({
-            color: 0x999999,
+            color: 0x666666,
             depthWrite: false
         }));
         mesh.rotation.x = -Math.PI / 2;
         scene.add(mesh);
-        let grid = new THREE.GridHelper(200, 40, 0x000000, 0x000000);
+
+        let grid = new THREE.GridHelper(2000, 100, 0x000000, 0x000000);
         grid.material.opacity = 0.2;
         grid.material.transparent = true;
         scene.add(grid);
