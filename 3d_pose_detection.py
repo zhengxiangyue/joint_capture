@@ -7,7 +7,7 @@ import numpy as np
 from src.dataset import Human36m
 from src.opt import *
 from src.model2 import Model, weight_init
-# from src.model import LinearModel, weight_init
+from src.model import LinearModel
 from src.draw_picture import draw_picture3, draw_picture2
 from src.utils import sort_ckpt, update_lr, unnormalize, normalize, loss_Average
 from torch.utils.data import DataLoader
@@ -53,7 +53,6 @@ def train(train_data, test_data, model, optimizer, criterion, start_epoch, end_e
 
 		print('---------- Testing ---------')
 
-		model.eval()
 		test_loss, cord_err = test(test_data, model, optimizer, criterion, stat_data_dir, CUDA)
 
 		print('---------- Test completed ---------')
@@ -78,7 +77,7 @@ def train(train_data, test_data, model, optimizer, criterion, start_epoch, end_e
 	fw.close()
 
 def test(test_data, model, optimizer, criterion, stat_data_dir, CUDA):
-
+	model.eval()
 	loss_avg = loss_Average()
 	cord_err = []
 	for i,(data, target) in enumerate(test_data):
@@ -142,12 +141,12 @@ def main():
 	lr_init = args.lr
 
 	test_data = DataLoader(dataset = Human36m(data_path = args.data_dir, is_train = False), batch_size = args.test_batch,
-		shuffle = True, num_workers = args.job, pin_memory = True)
+		shuffle = False, num_workers = args.job, pin_memory = True)
 
 	# train mode
 	if args.train:
 		train_data = DataLoader(dataset = Human36m(data_path = args.data_dir, is_train = True), batch_size = args.train_batch, 
-			shuffle = False, num_workers = args.job, pin_memory = True)
+			shuffle = True, num_workers = args.job, pin_memory = True)
 
 		if args.resume:
 			best_ckpt = torch.load('./best.pth.tar')
@@ -174,65 +173,62 @@ def main():
 
 		cktp_file = args.load
 		ckpt = torch.load(cktp_file, map_location=lambda storage, loc: storage)
-		model.load_state_dict(ckpt['state_dict'])
+		model.load_state_dict(ckpt['model'])
+		# model.load_state_dict(ckpt['state_dict'])
 		# optimizer.load_state_dict(ckpt['optim'])
 		print('Loaded checkpoint from {}'.format(args.load))
 
 		model.eval()
 
-		if not args.test_data:
-			print('Need to specify input')
-			sys.exit()
+		# if not args.test_data:
+		# 	print('Need to specify input')
+		# 	sys.exit()
 
-		data_file = args.test_data
-		data = [float(num) for num in open(data_file).readline().split(',')]
-		data = np.array(data).reshape((1, -1))
+		# data_file = args.test_data
+		# data = [float(num.strip()) for num in open(data_file).readline().split(',')]
+		# data = np.array(data).reshape((1, -1))
 
-		stat_2d = torch.load(os.path.join(args.data_dir, 'stat_2d.pth.tar'))
-		used_data = normalize(data, stat_2d['mean'], stat_2d['std'], stat_2d['dim_use'])
+		# stat_2d = torch.load(os.path.join(args.data_dir, 'stat_2d.pth.tar'))
+		# used_data = normalize(data, stat_2d['mean'], stat_2d['std'], stat_2d['dim_use'])
 
-		used_data = torch.from_numpy(used_data).float()
+		# used_data = torch.from_numpy(used_data).float()
 
-		used_data = Variable(used_data.cuda()) if CUDA else Variable(used_data.cpu())
-		output = model(used_data)
+		# used_data = Variable(used_data.cuda()) if CUDA else Variable(used_data.cpu())
+		# output = model(used_data)
 
-		stat_3d = torch.load(os.path.join(args.data_dir, 'stat_3d.pth.tar'))
-		unnormal_output = unnormalize(output.data.cpu(), stat_3d['mean'], stat_3d['std'], stat_3d['dim_use'])
-		used_output = unnormal_output[:, stat_3d['dim_use']].reshape((-1, 3)).reshape((-1, 16, 3))
+		# stat_3d = torch.load(os.path.join(args.data_dir, 'stat_3d.pth.tar'))
+		# unnormal_output = unnormalize(output.data.cpu(), stat_3d['mean'], stat_3d['std'], stat_3d['dim_use'])
+		# used_output = unnormal_output[:, stat_3d['dim_use']].reshape((-1, 3)).reshape((-1, 16, 3))
 		
-		output_3d = used_output[0]
-		data = data.reshape((-1, 2)).reshape((-1, 16, 2))
+		# output_3d = used_output[0]
+		# data = data.reshape((-1, 2)).reshape((-1, 16, 2))
 
-		draw_picture2(data[0], output_3d)
+		# draw_picture2(data[0], output_3d)
 
-		# for i, (data, target) in enumerate(test_data):
+		for i, (data, target) in enumerate(test_data):
 
-		# 	stat_3d = torch.load(os.path.join(args.data_dir, 'stat_3d.pth.tar'))
-		# 	stat_2d = torch.load(os.path.join(args.data_dir, 'stat_2d.pth.tar'))
+			stat_3d = torch.load(os.path.join(args.data_dir, 'stat_3d.pth.tar'))
+			stat_2d = torch.load(os.path.join(args.data_dir, 'stat_2d.pth.tar'))
 
-		# 	print data[0]
-		# 	data = Variable(data.cuda()) if CUDA else Variable(data.cpu())
-		# 	target = Variable(target.cuda()) if CUDA else Variable(target.cpu())
-		# 	print data.size()
-		# 	output = model(data)
+			data = Variable(data.cuda()) if CUDA else Variable(data.cpu())
+			target = Variable(target.cuda()) if CUDA else Variable(target.cpu())
+			output = model(data)
 
 
-		# 	unnormal_output = unnormalize(output.data.cpu().numpy(), stat_3d['mean'], stat_3d['std'], stat_3d['dim_use'])
-		# 	unnormal_target = unnormalize(target.data.cpu().numpy(), stat_3d['mean'], stat_3d['std'], stat_3d['dim_use'])
-		# 	unnormal_data = unnormalize(data.cpu().numpy(), stat_2d['mean'], stat_2d['std'], stat_2d['dim_use'])
+			unnormal_output = unnormalize(output.data.cpu().numpy(), stat_3d['mean'], stat_3d['std'], stat_3d['dim_use'])
+			unnormal_target = unnormalize(target.data.cpu().numpy(), stat_3d['mean'], stat_3d['std'], stat_3d['dim_use'])
+			unnormal_data = unnormalize(data.cpu().numpy(), stat_2d['mean'], stat_2d['std'], stat_2d['dim_use'])
 
-		# 	used_target = unnormal_target[:, stat_3d['dim_use']].reshape((-1, 3)).reshape((-1, 16, 3))
-		# 	used_output = unnormal_output[:, stat_3d['dim_use']].reshape((-1, 3)).reshape((-1, 16, 3))
-		# 	used_data = unnormal_data[:, stat_2d['dim_use']].reshape((-1, 2)).reshape((-1, 16, 2))
+			used_target = unnormal_target[:, stat_3d['dim_use']].reshape((-1, 3)).reshape((-1, 16, 3))
+			used_output = unnormal_output[:, stat_3d['dim_use']].reshape((-1, 3)).reshape((-1, 16, 3))
+			used_data = unnormal_data[:, stat_2d['dim_use']].reshape((-1, 2)).reshape((-1, 16, 2))
 
-		# 	print unnormal_data[:, stat_2d['dim_use']][0]
+			target_3d = used_target[0]
+			data_3d = used_output[0]
+			data_2d = used_data[0]
 
-		# 	target_3d = used_target[0]
-		# 	data_3d = used_output[0]
-		# 	data_2d = used_data[0]
-
-		# 	# draw_picture3(data_2d, data_3d, target_3d)
-		# 	draw_picture2(data_2d, data_3d)
+			draw_picture3(data_2d, data_3d, target_3d)
+			# draw_picture2(data_2d, data_3d)
 
 
 best_cord_err = np.inf			#if resume, load from best ckpt
