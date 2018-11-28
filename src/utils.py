@@ -1,7 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
 import numpy as np
+import os
+import matplotlib.pyplot as plt
+
+
+class loss_Average:
+    def __init__(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+
 def sort_ckpt(ckpt_dir):
 	file_list = [int(file.split('_')[1].split('.')[0]) for file in os.listdir(ckpt_dir)]
 	file_list = sorted(file_list)
@@ -35,6 +52,16 @@ def normalize(data, mean_vec, std_vec, dim_use_vec):
 
 	data = (data - mean_vec) / std_vec
 
-	return data
+	return data 
 
-
+def draw_leancurve(log_file):
+	fr = open(log_file)
+	fr.readline()
+	lr = []; train_loss = []; test_loss = []; cord_err = []
+	for record in fr.readlines():
+		record = record.split(',')
+		lr.append(float(record[1]))
+		train_loss.append(float(record[2]))
+		test_loss.append(float(record[3]))
+		cord_err.append(float(record[4]))
+	return lr, train_loss, test_loss, cord_err
