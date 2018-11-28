@@ -15,7 +15,7 @@ from utils import update_lr, unnormalize, sort_ckpt, normalize
 from torch.autograd import Variable
 sys.path.append("../")
 
-e = TfPoseEstimator('models/graph/mobilenet_thin_432x368/graph_opt.pb', target_size=(432, 368))
+e = TfPoseEstimator('models/graph_opt.pb', target_size=(432, 368))
 
 netOutMap = [
     'head',
