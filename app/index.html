@@ -18,7 +18,7 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
     <style>
-        #video {
+        #poseCanvas {
             -webkit-transform: scaleX(-1);
             transform: scaleX(-1);
         }
@@ -37,17 +37,18 @@
         <div class="col-10 col">
             <div class="row" style="margin: 10px">
                 <button class="btn" onclick="startWebcam();">Start WebCam</button>
-                <button class="btn" onclick="startVideo();">Start Video</button>
-
+                <button style="margin-left: 20px" class="btn" onclick="startVideo();">Start Video</button>
                 <button style="margin-left: 20px" class="btn" onclick="stopWebcam();">Stop WebCam</button>
                 <button style="margin-left: 20px" class="btn" onclick="usage();">How to use</button>
             </div>
             <div class="row">
                 <div class="col-6">
                     <div class="video-wrapper local">
-                        <video id="video" style="position: absolute;width: 900px;height: 600px" autoplay=""
+                        <video id="video"
+                               style="position: absolute;width: 300px"
+                               autoplay=""
                                playsinline=""></video>
-                        <canvas style="width: 900px;height: 600px;position: absolute;z-index: 1"
+                        <canvas style="position: absolute;z-index: 1"
                                 id="poseCanvas"></canvas>
                         <canvas style="display:none;position: absolute;z-index: 0" id="imageCanvas"></canvas>
                     </div>
@@ -94,12 +95,12 @@
     };
 
     const indexMap3d = {                            // joints index agreement
-        'rightHip': 0,
-        'rightKnee': 1,
-        'rightAnkle': 2,
-        'leftHip': 3,
-        'leftKnee': 4,
-        'leftAnkle': 5,
+        'leftHip': 0,
+        'leftKnee': 1,
+        'leftAnkle': 2,
+        'rightHip': 3,
+        'rightKnee': 4,
+        'rightAnkle': 5,
         'centerHip': 6,
         'spine': 7,
         'centerShoulder': 8,
@@ -136,7 +137,7 @@
     const outputStride = 16;
     const scoreThreshold = 0.58;
 
-    const canvasFactor = 300.0 / 1024.0;
+    let canvasFactor;
 
     // 2d drawing canvas and webcam element
     const imageElement = document.getElementById('video');
@@ -201,8 +202,6 @@
         // console.log(c.toDataURL());
         networks.estimateSinglePose(imageCanvasElement, scaleFactor, flipHorizontal, outputStride).then(function (result) {
 
-            console.log(result);
-
             let joints = {};
             for (let i = 0; i < result['keypoints'].length; ++i) {
                 joints[result['keypoints'][i]['part']] = result['keypoints'][i];
@@ -222,7 +221,7 @@
                 part: 'centerHip',
                 position: {
                     x: (joints['leftHip']['position'].x + joints['rightHip']['position'].x) * 0.5,
-                    y: (joints['leftHip']['position'].y + joints['rightHip']['position'].y) * 0.5,
+                    y: (joints['leftHip']['position'].y + joints['rightHip']['position'].y) * 0.5 - 40,
                 },
             };
             joints['spine'] = {
@@ -233,6 +232,13 @@
                     y: (joints['centerHip']['position'].y + joints['centerShoulder']['position'].y) * 0.5,
                 },
             };
+
+            joints['leftAnkle'].position.y -= 20;
+            joints['rightAnkle'].position.y -= 20;
+
+            joints['leftKnee'].position.y -= 30;
+            joints['rightKnee'].position.y -= 30;
+
             joints['head'] = joints['nose'];
 
             poseContext.clearRect(0, 0, poseCanvasElement.width, poseCanvasElement.height);
@@ -248,6 +254,7 @@
                 for (let key in indexMap2d) {
                     joints_sample.push([joints[key]['position'].x, joints[key]['position'].y]);
                 }
+                console.log(JSON.stringify(joints_sample));
                 socket.send(joints_sample);
             }
         });
@@ -398,11 +405,20 @@
         posenet.load().then(function (net) {
             // posenet model loaded
             networks = net;
-            imageElement.src = "sample.mp4";
+            // imageElement.src = "sample.mp4";
+            // imageElement.src = "sample2.mov";
+            imageElement.src = "sample6.webm";
             imageElement.load();
-            imageContext.canvas.width = 900;
-            imageContext.canvas.height = 600;
-            updateCanvas();
+
+            setTimeout(function () {
+                imageContext.canvas.width = imageElement.videoWidth;
+                imageContext.canvas.height = imageElement.videoHeight;
+                canvasFactor = 300.0 / imageElement.videoWidth;
+                poseContext.canvas.width = 300;
+                poseContext.canvas.height = 300.0 * imageElement.videoHeight / imageElement.videoWidth;
+                updateCanvas();
+            }, 3000);
+
         });
     }
 
@@ -445,8 +461,7 @@
         socket.addEventListener('message', function (event) {
             let result;
             try {
-                console.log(event.data);
-                result = JSON.parse(event.data)
+                result = JSON.parse(event.data);
             } catch (e) {
                 console.log("received message format", e);
                 return;
