@@ -26,14 +26,17 @@
 Human3.6M
 ## Dependencies
 Pytorch >= 0.3.0
-## Training usage
+## Usage
 Download the pre-processed [Human36m](https://drive.google.com/file/d/1IbVK2fXcr77JyI_ntyRV6OvoLwoMSq3a/view) dataset in 3d joints:
 
 ```
 unzip human36m.zip
 rm h36m.zip
 ```
-
+### Train 
+`python 3d_pose_detection.py --train`
+or
+`python 3d_pose_detection.py --train --resume`
 ### Test
 `python 3d_pose_detection.py --test --load ./checkpoint/best.pth.tar`
 
