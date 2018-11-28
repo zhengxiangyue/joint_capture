@@ -35,7 +35,7 @@ rm h36m.zip
 ```
 
 ### Test
-`python 3d_pose_detection.py --test --load ./checkpoint/ckpt_60.pth.tar`
+`python 3d_pose_detection.py --test --load ./checkpoint/best.pth.tar`
 
 ## The project is based on
 
