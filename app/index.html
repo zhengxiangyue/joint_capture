@@ -440,10 +440,14 @@
                         // posenet model loaded
                         networks = net;
 
-                        imageContext.canvas.width = imageElement.videoWidth;
-                        imageContext.canvas.height = imageElement.videoHeight;
-
-                        updateCanvas();
+                        setTimeout(function () {
+                            imageContext.canvas.width = imageElement.videoWidth;
+                            imageContext.canvas.height = imageElement.videoHeight;
+                            canvasFactor = 300.0 / imageElement.videoWidth;
+                            poseContext.canvas.width = 300;
+                            poseContext.canvas.height = 300.0 * imageElement.videoHeight / imageElement.videoWidth;
+                            updateCanvas();
+                        }, 1000);
                     });
                 },
                 error => {
@@ -466,7 +470,7 @@
             networks = net;
             // imageElement.src = "sample.mp4";
             // imageElement.src = "sample2.mov";
-            imageElement.src = "dancing.mp4";
+            imageElement.src = "clicli.mp4";
             imageElement.load();
 
             setTimeout(function () {
