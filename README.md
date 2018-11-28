@@ -1,6 +1,6 @@
 # 3D Human Pose Estimation Using Single RGB Camera
 
-<a href="https://youtu.be/cOUscx5WRF0"><img src="./static/1.png"/></a>
+<a target="_blank" href="https://youtu.be/cOUscx5WRF0"><img src="./static/1.png"/></a>
 
 ## Demo usage
 
