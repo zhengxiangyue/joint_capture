@@ -37,8 +37,9 @@
         <div class="col-10 col">
             <div class="row" style="margin: 10px">
                 <button class="btn" onclick="startWebcam();">Start WebCam</button>
-                <button style="margin-left: 20px" class="btn" onclick="startVideo();">Start Video</button>
                 <button style="margin-left: 20px" class="btn" onclick="stopWebcam();">Stop WebCam</button>
+                <button style="margin-left: 20px" class="btn" onclick="startVideo();">Start Video</button>
+                <button style="margin-left: 20px" class="btn" onclick="pauseVideo();">Pause Video</button>
                 <button style="margin-left: 20px" class="btn" onclick="usage();">How to use</button>
             </div>
             <div class="row">
@@ -77,12 +78,12 @@
 
     const indexMap2d = {
         'centerHip': 0,
-        'leftHip': 1,
-        'leftKnee': 2,
-        'leftAnkle': 3,
-        'rightHip': 4,
-        'rightKnee': 5,
-        'rightAnkle': 6,
+        'rightHip': 1,
+        'rightKnee': 2,
+        'rightAnkle': 3,
+        'leftHip': 4,
+        'leftKnee': 5,
+        'leftAnkle': 6,
         'spine': 7,
         'centerShoulder': 8,
         'head': 9,
@@ -105,12 +106,12 @@
         'spine': 7,
         'centerShoulder': 8,
         'head': 9,
-        'leftShoulder': 10,
-        'leftElbow': 11,
-        'leftWrist': 12,
-        'rightShoulder': 13,
-        'rightElbow': 14,
-        'rightWrist': 15
+        'rightShoulder': 10,
+        'rightElbow': 11,
+        'rightWrist': 12,
+        'leftShoulder': 13,
+        'leftElbow': 14,
+        'leftWrist': 15
     };
 
     const linePairs = [                             // lines that consit a human skeleton
@@ -130,6 +131,10 @@
         ['centerHip', 'rightHip'],
         ['rightHip', 'rightKnee'],
         ['rightKnee', 'rightAnkle'],
+    ];
+
+    const test_2d = [
+        [364.8181427483365, 402.1679788105875], [338.20440824541333, 399.34880934733064], [344.53082121795023, 490.12176557565516], [373.6410429668936, 557.0361463955172], [391.82966110326913, 405.0430750146441], [386.4626973339525, 500.4195000882045], [374.01653877202864, 593.3398592435473], [358.13977851348, 350.0118864821089], [358.7907324161477, 298.41851942261496], [356.36676282021097, 261.20141708412547], [392.61996090914556, 309.95448234980944], [418.73690482967345, 361.07646887251667], [422.34825580311366, 412.7801314594551], [327.5449890806326, 313.2630500417638], [301.8809202378766, 366.08205299059995], [315.0577016074021, 405.44904262852936]
     ];
 
     const scaleFactor = 0.50;                       // 2d networks configurations
@@ -156,12 +161,19 @@
     /**
      * Draw 2d lines on canvas
      * */
-    function drawLine(_from, _to) {
+    function drawLine(_from, _to, color = '#00ff00') {
         poseContext.beginPath();
         poseContext.lineWidth = 2;
-        poseContext.strokeStyle = '#00ff00';
+        poseContext.strokeStyle = color;
         poseContext.moveTo(canvasFactor * _from['position'].x, canvasFactor * _from['position'].y);
         poseContext.lineTo(canvasFactor * _to['position'].x, canvasFactor * _to['position'].y);
+        poseContext.stroke();
+    }
+
+    function drawCircle(pos, color = '#00ff00') {
+        poseContext.beginPath();
+        poseContext.strokeStyle = color;
+        poseContext.arc(canvasFactor * pos['position'].x, canvasFactor * pos['position'].y, 5, 0, 2 * Math.PI);
         poseContext.stroke();
     }
 
@@ -202,62 +214,106 @@
         // console.log(c.toDataURL());
         networks.estimateSinglePose(imageCanvasElement, scaleFactor, flipHorizontal, outputStride).then(function (result) {
 
-            let joints = {};
-            for (let i = 0; i < result['keypoints'].length; ++i) {
-                joints[result['keypoints'][i]['part']] = result['keypoints'][i];
-            }
+                let joints = {};
+                for (let i = 0; i < result['keypoints'].length; ++i) {
+                    joints[result['keypoints'][i]['part']] = result['keypoints'][i];
+                }
 
-            // calculate center shoulder
-            joints['centerShoulder'] = {
-                score: (joints['leftShoulder']['score'] + joints['rightShoulder']['score']) * 0.5,
-                part: 'centerShoulder',
-                position: {
-                    x: (joints['leftShoulder']['position'].x + joints['rightShoulder']['position'].x) * 0.5,
-                    y: (joints['leftShoulder']['position'].y + joints['rightShoulder']['position'].y) * 0.5
-                },
-            };
-            joints['centerHip'] = {
-                score: (joints['leftHip']['score'] + joints['rightHip']['score']) * 0.5,
-                part: 'centerHip',
-                position: {
-                    x: (joints['leftHip']['position'].x + joints['rightHip']['position'].x) * 0.5,
-                    y: (joints['leftHip']['position'].y + joints['rightHip']['position'].y) * 0.5 - 40,
-                },
-            };
-            joints['spine'] = {
-                score: (joints['centerHip']['score'] + joints['centerShoulder']['score']) * 0.5,
-                part: 'spine',
-                position: {
-                    x: (joints['centerHip']['position'].x + joints['centerShoulder']['position'].x) * 0.5,
-                    y: (joints['centerHip']['position'].y + joints['centerShoulder']['position'].y) * 0.5,
-                },
-            };
+                // joints['nose']['position'].y -= 10;
+                // joints['leftHip']['position'].y -= 20;
+                // joints['rightHip']['position'].y -= 20;
 
-            joints['leftAnkle'].position.y -= 20;
-            joints['rightAnkle'].position.y -= 20;
+                // calculate center shoulder
+                joints['centerShoulder'] = {
+                    score: (joints['leftShoulder']['score'] + joints['rightShoulder']['score']) * 0.5,
+                    part: 'centerShoulder',
+                    position: {
+                        x: (joints['leftShoulder']['position'].x + joints['rightShoulder']['position'].x) * 0.5,
+                        y: (joints['leftShoulder']['position'].y + joints['rightShoulder']['position'].y) * 0.5
+                    },
+                };
+                joints['centerHip'] = {
+                    score: (joints['leftHip']['score'] + joints['rightHip']['score']) * 0.5,
+                    part: 'centerHip',
+                    position: {
+                        x: (joints['leftHip']['position'].x + joints['rightHip']['position'].x) * 0.5,
+                        y: (joints['leftHip']['position'].y + joints['rightHip']['position'].y) * 0.5,
+                    },
+                };
+                joints['spine'] = {
+                    score: (joints['centerHip']['score'] + joints['centerShoulder']['score']) * 0.5,
+                    part: 'spine',
+                    position: {
+                        x: (joints['centerHip']['position'].x + joints['centerShoulder']['position'].x) * 0.5,
+                        y: (joints['centerHip']['position'].y + joints['centerShoulder']['position'].y) * 0.5,
+                    },
+                };
 
-            joints['leftKnee'].position.y -= 30;
-            joints['rightKnee'].position.y -= 30;
+                joints['head'] = joints['nose'];
 
-            joints['head'] = joints['nose'];
 
-            poseContext.clearRect(0, 0, poseCanvasElement.width, poseCanvasElement.height);
+                // change position manully here
 
-            for (let i = 0; i < linePairs.length; ++i) {
-                if (joints[linePairs[i][0]]['score'] > scoreThreshold && joints[linePairs[i][1]]['score']) {
-                    drawLine(joints[linePairs[i][0]], joints[linePairs[i][1]]);
+                // joints['head']['position'].y -= 20;
+                // // joints['leftKnee']['position'].y += 60;
+                // // joints['rightKnee']['position'].y += 60;
+                // joints['leftAnkle']['position'].y -= 30;
+                // joints['rightAnkle']['position'].y -= 30;
+
+                poseContext.clearRect(0, 0, poseCanvasElement.width, poseCanvasElement.height);
+
+                let index = 15;
+
+                for (let each in indexMap2d) {
+                    if (joints[each]['score'] > scoreThreshold) {
+                        let color = '#00ff00';
+                        if (indexMap2d[each] == index) {
+                            color = 'red';
+                        }
+                        drawCircle(joints[each], color);
+                    }
+                }
+
+                for (let i = 0; i < linePairs.length; ++i) {
+                    if (joints[linePairs[i][0]]['score'] > scoreThreshold && joints[linePairs[i][1]]['score']) {
+                        drawLine(joints[linePairs[i][0]], joints[linePairs[i][1]]);
+                    }
+                }
+
+                // for (key in joints) {
+                //     if (key in indexMap2d) {
+                //         joints[key]['position'].x = test_2d[indexMap2d[key]][0];
+                //         joints[key]['position'].y = test_2d[indexMap2d[key]][1];
+                //     }
+                // }
+                //
+                // for (let each in indexMap2d) {
+                //     if (joints[each]['score'] > scoreThreshold) {
+                //         let color = '#00ff00';
+                //         if (indexMap2d[each] == index) {
+                //             color = 'red';
+                //         }
+                //         drawCircle(joints[each], color);
+                //     }
+                // }
+                //
+                // for (let i = 0; i < linePairs.length; ++i) {
+                //     if (joints[linePairs[i][0]]['score'] > scoreThreshold && joints[linePairs[i][1]]['score']) {
+                //         drawLine(joints[linePairs[i][0]], joints[linePairs[i][1]]);
+                //     }
+                // }
+
+
+                if (result['score'] > scoreThreshold) {
+                    joints_sample = [];
+                    for (let key in indexMap2d) {
+                        joints_sample.push([joints[key]['position'].x, joints[key]['position'].y]);
+                    }
+                    // console.log(JSON.stringify(joints_sample));
+                    socket.send(joints_sample);
                 }
             }
-
-            if (result['score'] > scoreThreshold) {
-                joints_sample = [];
-                for (let key in indexMap2d) {
-                    joints_sample.push([joints[key]['position'].x, joints[key]['position'].y]);
-                }
-                console.log(JSON.stringify(joints_sample));
-                socket.send(joints_sample);
-            }
-        });
+        );
 
         setTimeout(function () {
             currentAnimationId = requestAnimationFrame(updateCanvas);
@@ -399,6 +455,9 @@
         }
     }
 
+    function pauseVideo() {
+        imageElement.pause();
+    }
 
     function startVideo() {
 
@@ -407,7 +466,7 @@
             networks = net;
             // imageElement.src = "sample.mp4";
             // imageElement.src = "sample2.mov";
-            imageElement.src = "sample6.webm";
+            imageElement.src = "dancing.mp4";
             imageElement.load();
 
             setTimeout(function () {
@@ -417,7 +476,7 @@
                 poseContext.canvas.width = 300;
                 poseContext.canvas.height = 300.0 * imageElement.videoHeight / imageElement.videoWidth;
                 updateCanvas();
-            }, 3000);
+            }, 1000);
 
         });
     }
