@@ -13,6 +13,7 @@
     <script src="js/posenet.js"></script>
     <script src="js/three.js"></script>
     <script src="js/OrbitControls.js"></script>
+    <script src="js/GLTFLoader.js"></script>
     <script src="js/WebGL.js"></script>
 
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -76,6 +77,8 @@
     let lines_3d = [];                              // have access to drawn lines to conveniently destroy
     let sphere_3d = [];
 
+    let modelObjects = {};
+
     const indexMap2d = {
         'centerHip': 0,
         'rightHip': 1,
@@ -115,15 +118,16 @@
     };
 
     const linePairs = [                             // lines that consit a human skeleton
-        ['head', 'centerShoulder'],
-        ['centerShoulder', 'spine'],
-        ['spine', 'centerHip'],
+        ['spine', 'centerHip', 'mixamorigSpine', new THREE.Vector3(0.0, 1.0, 0.0)],                                                         // spineBottom
+        ['centerShoulder', 'spine',],
+        ['centerShoulder', 'head', 'mixamorigHead', new THREE.Vector3(0.0, 1.0, 0.0)],  // mixamorigHeadTop_End
+
         ['leftShoulder', 'centerShoulder'],
         ['centerShoulder', 'rightShoulder'],
         ['leftShoulder', 'leftElbow'],
         ['leftElbow', 'leftWrist'],
-        ['rightShoulder', 'rightElbow'],
-        ['rightElbow', 'rightWrist'],
+        ['rightShoulder', 'rightElbow'],//, 'mixamorigRightArm', new THREE.Vector3(1.0, 0.0, 0.0).normalize()],
+        ['rightElbow', 'rightWrist'],//, 'mixamorigRightForeArm', new THREE.Vector3(1.0, 0.0, 0.0).normalize()],
         ['centerHip', 'leftHip'],
         ['leftHip', 'leftKnee'],
         ['leftKnee', 'leftAnkle'],
@@ -132,6 +136,34 @@
         ['rightHip', 'rightKnee'],
         ['rightKnee', 'rightAnkle'],
     ];
+
+    // start, end, parent
+    const bones = {
+        // 'mixamorigSpine': [
+        //     'centerHip', 'spine'
+        // ],
+        'mixamorigSpine1': [
+            'centerShoulder', 'spine',
+        ],
+        'mixamorigHead': [
+            'head', 'centerShoulder', 'mixamorigSpine1'
+        ],
+        // 'mixamorigLeftShoulder': [
+        //     'centerShoulder', 'leftShoulder', 'mixamorigSpine1',
+        // ],
+        // 'mixamorigLeftArm': [
+        //     'leftShoulder', 'leftElbow',
+        // ],
+        // 'mixamorigLeftForeArm': [
+        //     'leftElbow', 'leftWrist', 'mixamorigLeftArm',
+        // ],
+        // 'mixamorigRightUpLeg': [
+        //     'rightHip', 'rightKnee', 'mixamorigSpine'
+        // ],
+        // 'mixamorigRightLeg': [
+        //     'rightKnee', 'rightAnkle',
+        // ],
+    };
 
     const test_2d = [
         [364.8181427483365, 402.1679788105875], [338.20440824541333, 399.34880934733064], [344.53082121795023, 490.12176557565516], [373.6410429668936, 557.0361463955172], [391.82966110326913, 405.0430750146441], [386.4626973339525, 500.4195000882045], [374.01653877202864, 593.3398592435473], [358.13977851348, 350.0118864821089], [358.7907324161477, 298.41851942261496], [356.36676282021097, 261.20141708412547], [392.61996090914556, 309.95448234980944], [418.73690482967345, 361.07646887251667], [422.34825580311366, 412.7801314594551], [327.5449890806326, 313.2630500417638], [301.8809202378766, 366.08205299059995], [315.0577016074021, 405.44904262852936]
@@ -370,10 +402,44 @@
         //
     }
 
+    let angle = 0.0;
+
     /**
      * Based on current content in joints_sample_3d, draw the line pairs in the scene
      */
     function updateScene() {
+
+        if ('mixamorigRightForeArm' in modelObjects) {
+
+            for (let each in bones) {
+                if (bones[each].length !== 3) continue;
+                let this_joint = each;
+                let parent_joint = bones[each][2];
+
+                var quaternion = new THREE.Quaternion(); // create one and reuse it
+
+                let currentVec = new THREE.Vector3(
+                    joints_sample_3d[indexMap3d[bones[this_joint][0]]][0] - joints_sample_3d[indexMap3d[bones[this_joint][1]]][0],
+                    joints_sample_3d[indexMap3d[bones[this_joint][0]]][1] - joints_sample_3d[indexMap3d[bones[this_joint][1]]][1],
+                    joints_sample_3d[indexMap3d[bones[this_joint][0]]][2] - joints_sample_3d[indexMap3d[bones[this_joint][1]]][2]
+                ).normalize();
+
+                let initialVec = new THREE.Vector3(
+                    joints_sample_3d[indexMap3d[bones[parent_joint][0]]][0] - joints_sample_3d[indexMap3d[bones[parent_joint][1]]][0],
+                    joints_sample_3d[indexMap3d[bones[parent_joint][0]]][1] - joints_sample_3d[indexMap3d[bones[parent_joint][1]]][1],
+                    joints_sample_3d[indexMap3d[bones[parent_joint][0]]][2] - joints_sample_3d[indexMap3d[bones[parent_joint][1]]][2]
+                ).normalize()
+
+                quaternion.setFromUnitVectors(currentVec, initialVec);
+                modelObjects[each].setRotationFromQuaternion(quaternion);
+            }
+
+            // modelObjects['mixamorigHips'].setRotationFromEuler(new THREE.Euler(angle, 0, 0, 'XYZ'));
+            // modelObjects['mixamorigRightForeArm'].setRotationFromEuler(new THREE.Euler(angle, 0, 0, 'XYZ'));
+            // modelObjects['mixamorigSpine'].setRotationFromEuler(new THREE.Euler(angle, angle, 0, 'XYZ')); // centerHip
+            // angle += 0.01;
+        }
+
         if (joints_sample_3d.length > 0 && (joints_sample_3d[0][0] !== 0) || (joints_sample_3d[0][1] !== 0) || (joints_sample_3d[0][2] !== 0)) {
             for (let i = 0; i < lines_3d.length; ++i) {
                 scene.remove(lines_3d[i]);
@@ -390,7 +456,7 @@
             sphere_3d = [];
 
             for (let i = 0; i < linePairs.length; ++i) {
-                setLine(generateVec3(indexMap3d[linePairs[i][0]]), generateVec3(indexMap3d[linePairs[i][1]]), linePairs[i][2]);
+                setLine(generateVec3(indexMap3d[linePairs[i][0]]), generateVec3(indexMap3d[linePairs[i][1]]));
             }
 
             for (let each in indexMap3d) {
@@ -470,7 +536,7 @@
             networks = net;
             // imageElement.src = "sample.mp4";
             // imageElement.src = "sample2.mov";
-            imageElement.src = "clicli.mp4";
+            imageElement.src = "sample3.mp4";
             imageElement.load();
 
             setTimeout(function () {
@@ -547,6 +613,10 @@
         renderer = new THREE.WebGLRenderer({antialias: true});
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.gammaOutput = true;
+        renderer.gammaFactor = 2.2;
+        renderer.shadowMap.enabled = true;
+
         document.getElementById("info").appendChild(renderer.domElement);
 
         camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 5000);
@@ -586,12 +656,39 @@
 
         // lights
 
-        let light = new THREE.HemisphereLight(0xffffff, 0x444444);
-        light.position.set(0, 20, 0);
-        scene.add(light);
-        light = new THREE.DirectionalLight(0xffffff);
-        light.position.set(0, 20, 10);
-        scene.add(light);
+        let hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444);
+        hemiLight.position.set(0, 200, 0);
+        scene.add(hemiLight);
+
+        let dirLight = new THREE.DirectionalLight(0xffffff);
+        dirLight.position.set(-30, 100, -100);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.top = 2;
+        dirLight.shadow.camera.bottom = -2;
+        dirLight.shadow.camera.left = -2;
+        dirLight.shadow.camera.right = 2;
+        dirLight.shadow.camera.near = 0.1;
+        dirLight.shadow.camera.far = 40;
+        scene.add(dirLight);
+
+        // soilder
+
+        var loader = new THREE.GLTFLoader();
+        loader.load('models/Soldier.glb', function (gltf) {
+
+            model = gltf.scene;
+            model.scale.set(50, 50, 50);
+            scene.add(model);
+
+            model.traverse(function (object) {
+                modelObjects[object.name] = object;
+                console.log(object);
+            });
+
+            skeleton = new THREE.SkeletonHelper(model);
+            scene.add(skeleton);
+
+        });
 
         window.addEventListener('resize', onWindowResize, false);
     }
@@ -610,6 +707,16 @@
 
     function render() {
         renderer.render(scene, camera);
+    }
+
+
+    let model_init_rotation
+
+    /**
+     *
+     */
+    function modelPartRotate(name) {
+
     }
 
     init();
