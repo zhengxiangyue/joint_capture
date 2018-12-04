@@ -139,31 +139,122 @@
 
     // start, end, parent
     const bones = {
-        // 'mixamorigSpine': [
-        //     'centerHip', 'spine'
-        // ],
-        'mixamorigSpine1': [
-            'centerShoulder', 'spine',
-        ],
-        'mixamorigHead': [
-            'head', 'centerShoulder', 'mixamorigSpine1'
-        ],
-        // 'mixamorigLeftShoulder': [
-        //     'centerShoulder', 'leftShoulder', 'mixamorigSpine1',
-        // ],
-        // 'mixamorigLeftArm': [
-        //     'leftShoulder', 'leftElbow',
-        // ],
-        // 'mixamorigLeftForeArm': [
-        //     'leftElbow', 'leftWrist', 'mixamorigLeftArm',
-        // ],
-        // 'mixamorigRightUpLeg': [
-        //     'rightHip', 'rightKnee', 'mixamorigSpine'
-        // ],
-        // 'mixamorigRightLeg': [
-        //     'rightKnee', 'rightAnkle',
-        // ],
+
+        'mixamorigSpine': {
+            'startJoint': 'centerHip',
+            'endJoint': 'spine',
+            'parent': undefined,
+            'standardQuat': new THREE.Quaternion(), // parent joint vec apply to this quat, we get the standard vec for this joint
+        },
+
+        'mixamorigSpine1': {
+            'startJoint': 'spine',
+            'endJoint': 'centerShoulder',
+            'parent': 'mixamorigSpine',
+            'standardQuat': new THREE.Quaternion(),
+        },
+
+        'mixamorigHead': {
+            'startJoint': 'centerShoulder',
+            'endJoint': 'head',
+            'parent': 'mixamorigSpine1',
+            'standardQuat': new THREE.Quaternion(),
+        },
+        //
+        // // left arm
+        //
+        // 'mixamorigLeftShoulder': {
+        //     'startJoint': 'centerShoulder',
+        //     'endJoint': 'leftShoulder',
+        //     'parent': undefined,
+        //     'standardQuat': new THREE.Quaternion(),
+        // },
+        //
+        // 'mixamorigLeftArm': {
+        //     'startJoint': 'leftShoulder',
+        //     'endJoint': 'leftElbow',
+        //     'parent': 'mixamorigLeftShoulder',
+        //     'standardQuat': new THREE.Quaternion(),
+        // },
+        //
+        // 'mixamorigLeftForeArm': {
+        //     'startJoint': 'leftElbow',
+        //     'endJoint': 'leftWrist',
+        //     'parent': 'mixamorigLeftArm',
+        //     'standardQuat': new THREE.Quaternion(),
+        // },
+
+        // right arm
+
+        // 'mixamorigRightShoulder': {
+        //     'startJoint': 'centerShoulder',
+        //     'endJoint': 'rightShoulder',
+        //     'parent': undefined,
+        //     'standardQuat': new THREE.Quaternion(),
+        // },
+        //
+        // 'mixamorigRightArm': {
+        //     'startJoint': 'rightShoulder',
+        //     'endJoint': 'rightElbow',
+        //     'parent': 'mixamorigRightShoulder',
+        //     'standardQuat': new THREE.Quaternion(),
+        // },
+        //
+        // 'mixamorigRightForeArm': {
+        //     'startJoint': 'rightElbow',
+        //     'endJoint': 'rightWrist',
+        //     'parent': 'mixamorigRightArm',
+        //     'standardQuat': new THREE.Quaternion(),
+        // },
+
+        // left leg
+
+        // 'mixamorigLeftUpLeg': {
+        //     'startJoint': 'leftHip',
+        //     'endJoint': 'leftKnee',
+        //     'parent': 'mixamorigSpine',
+        //     'standardQuat': new THREE.Quaternion(),
+        // },
+        //
+        // 'mixamorigLeftLeg': {
+        //     'startJoint': 'leftKnee',
+        //     'endJoint': 'leftAnkle',
+        //     'parent': 'mixamorigLeftUpLeg',
+        //     'standardQuat': new THREE.Quaternion()
+        // },
+        //
+        // // right leg
+        //
+        // 'mixamorigRightUpLeg': {
+        //     'startJoint': 'rightHip',
+        //     'endJoint': 'rightKnee',
+        //     'parent': 'mixamorigSpine',
+        //     'standardQuat': new THREE.Quaternion(),
+        // },
+        //
+        // 'mixamorigRightLeg': {
+        //     'startJoint': 'rightKnee',
+        //     'endJoint': 'rightAnkle',
+        //     'parent': 'mixamorigRightUpLeg',
+        //     'standardQuat': new THREE.Quaternion()
+        // },
     };
+
+    // let leftArmQuat = new THREE.Quaternion();
+    // leftArmQuat.setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
+    // bones['mixamorigLeftShoulder']['standardQuat'] = leftArmQuat;
+
+    // let rightArmQuat = new THREE.Quaternion();
+    // rightArmQuat.setFromAxisAngle(new THREE.Vector3(0, 0, -1), Math.PI / 2);
+    // bones['mixamorigRightShoulder']['standardQuat'] = rightArmQuat;
+    //
+    // let leftLeg = new THREE.Quaternion();
+    // leftLeg.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
+    // bones['mixamorigLeftUpLeg']['standardQuat'] = leftLeg;
+    //
+    // let rightLeg = new THREE.Quaternion();
+    // rightLeg.setFromAxisAngle(new THREE.Vector3(-1, 0, 0), Math.PI);
+    // bones['mixamorigRightUpLeg']['standardQuat'] = leftLeg;
 
     const test_2d = [
         [364.8181427483365, 402.1679788105875], [338.20440824541333, 399.34880934733064], [344.53082121795023, 490.12176557565516], [373.6410429668936, 557.0361463955172], [391.82966110326913, 405.0430750146441], [386.4626973339525, 500.4195000882045], [374.01653877202864, 593.3398592435473], [358.13977851348, 350.0118864821089], [358.7907324161477, 298.41851942261496], [356.36676282021097, 261.20141708412547], [392.61996090914556, 309.95448234980944], [418.73690482967345, 361.07646887251667], [422.34825580311366, 412.7801314594551], [327.5449890806326, 313.2630500417638], [301.8809202378766, 366.08205299059995], [315.0577016074021, 405.44904262852936]
@@ -411,27 +502,62 @@
 
         if ('mixamorigRightForeArm' in modelObjects) {
 
-            for (let each in bones) {
-                if (bones[each].length !== 3) continue;
-                let this_joint = each;
-                let parent_joint = bones[each][2];
+            for (let this_bone in bones) {
 
-                var quaternion = new THREE.Quaternion(); // create one and reuse it
+                let parent_bone = bones[this_bone]['parent'];
 
-                let currentVec = new THREE.Vector3(
-                    joints_sample_3d[indexMap3d[bones[this_joint][0]]][0] - joints_sample_3d[indexMap3d[bones[this_joint][1]]][0],
-                    joints_sample_3d[indexMap3d[bones[this_joint][0]]][1] - joints_sample_3d[indexMap3d[bones[this_joint][1]]][1],
-                    joints_sample_3d[indexMap3d[bones[this_joint][0]]][2] - joints_sample_3d[indexMap3d[bones[this_joint][1]]][2]
+                if (parent_bone === undefined) {
+                    continue;
+                }
+
+                // first calculate parent normalized vector, and the current bone's normalized vector
+
+                let standardVec = new THREE.Vector3(
+                    joints_sample_3d[indexMap3d[bones[parent_bone]['endJoint']]][0] - joints_sample_3d[indexMap3d[bones[parent_bone]['startJoint']]][0],
+                    joints_sample_3d[indexMap3d[bones[parent_bone]['endJoint']]][1] - joints_sample_3d[indexMap3d[bones[parent_bone]['startJoint']]][1],
+                    joints_sample_3d[indexMap3d[bones[parent_bone]['endJoint']]][2] - joints_sample_3d[indexMap3d[bones[parent_bone]['startJoint']]][2]
                 ).normalize();
 
-                let initialVec = new THREE.Vector3(
-                    joints_sample_3d[indexMap3d[bones[parent_joint][0]]][0] - joints_sample_3d[indexMap3d[bones[parent_joint][1]]][0],
-                    joints_sample_3d[indexMap3d[bones[parent_joint][0]]][1] - joints_sample_3d[indexMap3d[bones[parent_joint][1]]][1],
-                    joints_sample_3d[indexMap3d[bones[parent_joint][0]]][2] - joints_sample_3d[indexMap3d[bones[parent_joint][1]]][2]
-                ).normalize()
+                let currentVec = new THREE.Vector3(
+                    joints_sample_3d[indexMap3d[bones[this_bone]['endJoint']]][0] - joints_sample_3d[indexMap3d[bones[this_bone]['startJoint']]][0],
+                    joints_sample_3d[indexMap3d[bones[this_bone]['endJoint']]][1] - joints_sample_3d[indexMap3d[bones[this_bone]['startJoint']]][1],
+                    joints_sample_3d[indexMap3d[bones[this_bone]['endJoint']]][2] - joints_sample_3d[indexMap3d[bones[this_bone]['startJoint']]][2]
+                ).normalize();
 
-                quaternion.setFromUnitVectors(currentVec, initialVec);
-                modelObjects[each].setRotationFromQuaternion(quaternion);
+                // transform the parent vector to the standard vector
+
+                standardVec.applyQuaternion(bones[this_bone]['standardQuat']);
+
+                // calculate the quaternion between the bone and the standardVec
+
+                let result = bones[this_bone]['initialQuat'].clone();
+
+                let quaternion = new THREE.Quaternion();
+                quaternion.setFromUnitVectors(standardVec, currentVec);
+                result.multiply(quaternion);
+
+                modelObjects[this_bone].setRotationFromQuaternion(result);
+
+                // if (bones[each].length !== 3) continue;
+                // let this_joint = each;
+                // let parent_joint = bones[each][2];
+                //
+                // var quaternion = new THREE.Quaternion(); // create one and reuse it
+                //
+                // let currentVec = new THREE.Vector3(
+                //     joints_sample_3d[indexMap3d[bones[this_joint][1]]][0] - joints_sample_3d[indexMap3d[bones[this_joint][0]]][0],
+                //     joints_sample_3d[indexMap3d[bones[this_joint][1]]][1] - joints_sample_3d[indexMap3d[bones[this_joint][0]]][1],
+                //     joints_sample_3d[indexMap3d[bones[this_joint][1]]][2] - joints_sample_3d[indexMap3d[bones[this_joint][0]]][2]
+                // ).normalize();
+                //
+                // let initialVec = new THREE.Vector3(
+                //     joints_sample_3d[indexMap3d[bones[parent_joint][1]]][0] - joints_sample_3d[indexMap3d[bones[parent_joint][0]]][0],
+                //     joints_sample_3d[indexMap3d[bones[parent_joint][1]]][1] - joints_sample_3d[indexMap3d[bones[parent_joint][0]]][1],
+                //     joints_sample_3d[indexMap3d[bones[parent_joint][1]]][2] - joints_sample_3d[indexMap3d[bones[parent_joint][0]]][2]
+                // ).normalize()
+                //
+                // quaternion.setFromUnitVectors(currentVec, initialVec);
+                // modelObjects[each].setRotationFromQuaternion(quaternion);
             }
 
             // modelObjects['mixamorigHips'].setRotationFromEuler(new THREE.Euler(angle, 0, 0, 'XYZ'));
@@ -534,9 +660,10 @@
         posenet.load().then(function (net) {
             // posenet model loaded
             networks = net;
+            // video
             // imageElement.src = "sample.mp4";
             // imageElement.src = "sample2.mov";
-            imageElement.src = "sample3.mp4";
+            imageElement.src = "dancing.mp4";
             imageElement.load();
 
             setTimeout(function () {
@@ -682,6 +809,9 @@
 
             model.traverse(function (object) {
                 modelObjects[object.name] = object;
+                if (object.name in bones) {
+                    bones[object.name]['initialQuat'] = object['quaternion'].clone();
+                }
                 console.log(object);
             });
 
