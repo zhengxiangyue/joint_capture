@@ -150,23 +150,33 @@
         'mixamorigSpine1': {
             'startJoint': 'spine',
             'endJoint': 'centerShoulder',
-            'parent': 'mixamorigSpine',
+            'parent': undefined,
             'standardQuat': new THREE.Quaternion(),
         },
 
         'mixamorigHead': {
             'startJoint': 'centerShoulder',
             'endJoint': 'head',
-            'parent': 'mixamorigSpine1',
+            'parent': 'mixamorigSpine',
             'standardQuat': new THREE.Quaternion(),
         },
+
+        //
+        // 'mixamorigSpine2': {
+        //     'startJoint': 'spine',
+        //     'endJoint': 'centerShoulder',
+        //     'parent': undefined,
+        //     'standardQuat': new THREE.Quaternion(),
+        // },
+
+
         //
         // // left arm
         //
         // 'mixamorigLeftShoulder': {
         //     'startJoint': 'centerShoulder',
         //     'endJoint': 'leftShoulder',
-        //     'parent': undefined,
+        //     'parent': 'mixamorigSpine2',
         //     'standardQuat': new THREE.Quaternion(),
         // },
         //
@@ -183,13 +193,13 @@
         //     'parent': 'mixamorigLeftArm',
         //     'standardQuat': new THREE.Quaternion(),
         // },
-
-        // right arm
-
+        //
+        // // right arm
+        //
         // 'mixamorigRightShoulder': {
         //     'startJoint': 'centerShoulder',
         //     'endJoint': 'rightShoulder',
-        //     'parent': undefined,
+        //     'parent': 'mixamorigSpine1',
         //     'standardQuat': new THREE.Quaternion(),
         // },
         //
@@ -206,9 +216,9 @@
         //     'parent': 'mixamorigRightArm',
         //     'standardQuat': new THREE.Quaternion(),
         // },
-
-        // left leg
-
+        //
+        // // left leg
+        //
         // 'mixamorigLeftUpLeg': {
         //     'startJoint': 'leftHip',
         //     'endJoint': 'leftKnee',
@@ -222,9 +232,9 @@
         //     'parent': 'mixamorigLeftUpLeg',
         //     'standardQuat': new THREE.Quaternion()
         // },
-        //
-        // // right leg
-        //
+        // //
+        // // // right leg
+        // //
         // 'mixamorigRightUpLeg': {
         //     'startJoint': 'rightHip',
         //     'endJoint': 'rightKnee',
@@ -243,15 +253,15 @@
     // let leftArmQuat = new THREE.Quaternion();
     // leftArmQuat.setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
     // bones['mixamorigLeftShoulder']['standardQuat'] = leftArmQuat;
-
+    //
     // let rightArmQuat = new THREE.Quaternion();
     // rightArmQuat.setFromAxisAngle(new THREE.Vector3(0, 0, -1), Math.PI / 2);
     // bones['mixamorigRightShoulder']['standardQuat'] = rightArmQuat;
-    //
+    // //
     // let leftLeg = new THREE.Quaternion();
     // leftLeg.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
     // bones['mixamorigLeftUpLeg']['standardQuat'] = leftLeg;
-    //
+    // //
     // let rightLeg = new THREE.Quaternion();
     // rightLeg.setFromAxisAngle(new THREE.Vector3(-1, 0, 0), Math.PI);
     // bones['mixamorigRightUpLeg']['standardQuat'] = leftLeg;
