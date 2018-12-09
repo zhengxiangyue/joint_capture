@@ -150,7 +150,7 @@
         'mixamorigSpine1': {
             'startJoint': 'spine',
             'endJoint': 'centerShoulder',
-            'parent': 'mixamorigSpine',
+            'parent': undefined, //'mixamorigSpine',
             'standardQuat': new THREE.Quaternion(),
         },
 
@@ -181,14 +181,14 @@
         'mixamorigLeftArm': {
             'startJoint': 'leftShoulder',
             'endJoint': 'leftElbow',
-            'parent': 'mixamorigLeftShoulder',
+            'parent': undefined, //'mixamorigLeftShoulder',
             'standardQuat': new THREE.Quaternion(),
         },
 
         'mixamorigLeftForeArm': {
             'startJoint': 'leftElbow',
             'endJoint': 'leftWrist',
-            'parent': 'mixamorigLeftArm',
+            'parent': undefined, //'mixamorigLeftArm',
             'standardQuat': new THREE.Quaternion(),
         },
 
@@ -204,14 +204,14 @@
         'mixamorigRightArm': {
             'startJoint': 'rightShoulder',
             'endJoint': 'rightElbow',
-            'parent': 'mixamorigRightShoulder',
+            'parent': undefined, //'mixamorigRightShoulder',
             'standardQuat': new THREE.Quaternion(),
         },
 
         'mixamorigRightForeArm': {
             'startJoint': 'rightElbow',
             'endJoint': 'rightWrist',
-            'parent': 'mixamorigRightArm',
+            'parent': undefined, //'mixamorigRightArm',
             'standardQuat': new THREE.Quaternion(),
         },
 
@@ -230,9 +230,9 @@
             'parent': 'mixamorigLeftUpLeg',
             'standardQuat': new THREE.Quaternion()
         },
-        //
-        // // right leg
-        //
+
+        // right leg
+
         'mixamorigRightUpLeg': {
             'startJoint': 'rightHip',
             'endJoint': 'rightKnee',
@@ -248,18 +248,18 @@
         },
     };
 
-    let leftArmQuat = new THREE.Quaternion();
-    leftArmQuat.setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
-    bones['mixamorigLeftShoulder']['standardQuat'] = leftArmQuat;
-
-    let rightArmQuat = new THREE.Quaternion();
-    rightArmQuat.setFromAxisAngle(new THREE.Vector3(0, 0, -1), Math.PI / 2);
-    bones['mixamorigRightShoulder']['standardQuat'] = rightArmQuat;
+    // let leftArmQuat = new THREE.Quaternion();
+    // leftArmQuat.setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
+    // bones['mixamorigLeftShoulder']['standardQuat'] = leftArmQuat;
     //
+    // let rightArmQuat = new THREE.Quaternion();
+    // rightArmQuat.setFromAxisAngle(new THREE.Vector3(0, 0, -1), Math.PI / 2);
+    // bones['mixamorigRightShoulder']['standardQuat'] = rightArmQuat;
+    // //
     let leftLeg = new THREE.Quaternion();
     leftLeg.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
     bones['mixamorigLeftUpLeg']['standardQuat'] = leftLeg;
-    //
+    // //
     let rightLeg = new THREE.Quaternion();
     rightLeg.setFromAxisAngle(new THREE.Vector3(-1, 0, 0), Math.PI);
     bones['mixamorigRightUpLeg']['standardQuat'] = leftLeg;
