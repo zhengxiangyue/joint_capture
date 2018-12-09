@@ -47,8 +47,8 @@
                 <div class="col-6">
                     <div class="video-wrapper local">
                         <video id="video"
-                               style="position: absolute;width: 300px"
-                               autoplay=""
+                               style="position: absolute;width: 300px;height:200px"
+                               autoplay="true"
                                playsinline=""></video>
                         <canvas style="position: absolute;z-index: 1"
                                 id="poseCanvas"></canvas>
@@ -634,7 +634,8 @@
                 {video: true, audio: false, video: {width: 1024}},
                 stream => {
                     localStream = stream;
-                    $('.local video').attr('src', URL.createObjectURL(stream));
+                    document.getElementById('video').srcObject = stream;
+                    // $('.local video').attr('src', URL.createObjectURL(stream));
                     // load the posenet model
                     posenet.load().then(function (net) {
                         // posenet model loaded
