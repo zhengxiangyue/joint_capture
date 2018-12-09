@@ -47,7 +47,7 @@
                 <div class="col-6">
                     <div class="video-wrapper local">
                         <video id="video"
-                               style="position: absolute;width: 300px;height:200px"
+                               style="position: absolute;width: 300px"
                                autoplay="true"
                                playsinline=""></video>
                         <canvas style="position: absolute;z-index: 1"
@@ -272,6 +272,7 @@
     const flipHorizontal = true;
     const outputStride = 16;
     const scoreThreshold = 0.58;
+    const input2dWidth = 680;
 
     let canvasFactor;
 
@@ -631,7 +632,7 @@
     function startWebcam() {
         if (navigator.getUserMedia) {
             navigator.getUserMedia(
-                {video: true, audio: false, video: {width: 1024}},
+                {video: true, audio: false, video: {width: input2dWidth}},
                 stream => {
                     localStream = stream;
                     document.getElementById('video').srcObject = stream;
@@ -809,25 +810,25 @@
 
         // soilder
 
-        var loader = new THREE.GLTFLoader();
-        loader.load('models/Soldier.glb', function (gltf) {
-
-            model = gltf.scene;
-            model.scale.set(50, 50, 50);
-            scene.add(model);
-
-            model.traverse(function (object) {
-                modelObjects[object.name] = object;
-                if (object.name in bones) {
-                    bones[object.name]['initialQuat'] = object['quaternion'].clone();
-                }
-                console.log(object);
-            });
-
-            skeleton = new THREE.SkeletonHelper(model);
-            scene.add(skeleton);
-
-        });
+        // var loader = new THREE.GLTFLoader();
+        // loader.load('models/Soldier.glb', function (gltf) {
+        //
+        //     model = gltf.scene;
+        //     model.scale.set(50, 50, 50);
+        //     scene.add(model);
+        //
+        //     model.traverse(function (object) {
+        //         modelObjects[object.name] = object;
+        //         if (object.name in bones) {
+        //             bones[object.name]['initialQuat'] = object['quaternion'].clone();
+        //         }
+        //         console.log(object);
+        //     });
+        //
+        //     skeleton = new THREE.SkeletonHelper(model);
+        //     scene.add(skeleton);
+        //
+        // });
 
         window.addEventListener('resize', onWindowResize, false);
     }
