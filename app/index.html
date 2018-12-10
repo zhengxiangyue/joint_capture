@@ -610,7 +610,7 @@
      */
     function generateVec3(joint_index, x_offset = 0, y_offset = 200, z_offset = 0) {
         let world_coordinate = new THREE.Vector3(0.2 * joints_sample_3d[joint_index][0] + x_offset, -0.2 * joints_sample_3d[joint_index][1] + y_offset, 0.2 * joints_sample_3d[joint_index][2] + z_offset);
-        world_coordinate.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 4);
+        world_coordinate.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 8);
         return world_coordinate;
     }
 
